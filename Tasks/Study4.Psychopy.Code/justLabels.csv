@@ -1,0 +1,5 @@
+﻿thisCondition,changeSalience,changeDirection
+lowSalienceAcc,0,Acc
+highSalienceAcc,1,Acc
+lowSalienceDec,0,Dec
+highSalienceDec,1,Dec

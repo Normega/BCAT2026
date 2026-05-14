@@ -1,0 +1,2 @@
+﻿label,startVal,startValSd,pThreshold,method,beta,delta,gamma,grain,range
+astair,0.4,0.35,0.75,quantile,3.5,0.05,0.333,0.05,0.7

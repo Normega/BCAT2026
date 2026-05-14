@@ -1,0 +1,4 @@
+condition,estimate,std.error,statistic,p.value,conf.low,conf.high,layer,note,lrt_chi2,lrt_p
+Hits,-0.07419668043771788,0.00800739690926494,-9.266017568314714,3.0216896304744835e-20,-0.08989545709280143,-0.05849790378263432,3c_physio_arousal_by_accuracy,Within-person dur_b1_vs_b4 -> Arousal; Misses = primary null test,NA,NA
+Misses,-0.0010097224214926832,0.011660673471985378,-0.0865921187072538,0.9310055112625022,-0.023879839489051338,0.021860394646065973,3c_physio_arousal_by_accuracy,Within-person dur_b1_vs_b4 -> Arousal; Misses = primary null test,NA,NA
+dur_within x Accuracy (interaction),-0.0649354875490429,0.014064355724133342,NA,3.97270040748221e-6,NA,NA,3d_physio_x_accuracy_interaction,LRT: does detection moderate physio->arousal? Positive = amplification on hits,21.278901395247885,3.970779845629558e-6
