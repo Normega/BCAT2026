@@ -1,24 +1,23 @@
-# -- PATH CONFIGURATION -------------------------------------------------
-# Set ROOT_DIR to the repository root before running.
-# Default (".") assumes the script is run from the repo root directory.
+rm(list=ls())
 
-ROOT_DIR      <- "i:/Shared drives/Interoception 2025/"
+#Study folders
+# winpath = 'I:/Shared drives/Interoception 2025/Data/'
+# taskPath = paste0(winpath, "Behaviour/") 
+# qualtricsPath = paste0(winpath, "InteroceptionSummer2025_Qualtrics.xlsx") 
+# conditionPath = paste0(winpath, "ConditionLookup.xlsx")
+# resultsPath = "I:/Shared drives/Interoception 2025/Results/"
 
-if (!exists("ROOT_DIR")) ROOT_DIR <- "."
-mainPath     <- ROOT_DIR
-dataPath     <- file.path(ROOT_DIR, "data")
-taskPath     <- file.path(dataPath, "Behaviour")
-physioPath   <- file.path(dataPath, "Physio")
-analysisPath <- file.path(ROOT_DIR, "study5_processing")
-resultsPath  <- file.path(ROOT_DIR, "results")
-# -----------------------------------------------------------------------
+winpath      <- "i:/Shared drives/Interoception 2025/"
+dataPath     <- paste0(winpath, "Data/")
+resultsPath  <- paste0(winpath, "Results/")
+taskPath      <- paste0(dataPath, "Behaviour/")
+qualtricsPath <- paste0(dataPath, "InteroceptionSummer2025_Qualtrics.xlsx")
+conditionPath <- paste0(dataPath, "ConditionLookup.xlsx")
 
-questionnaireFile = file.path(resultsPath, "questionnaireFile.csv")
-taskDataFile = file.path(resultsPath, "dataFile.csv")
-taskTestFile = file.path(resultsPath, "testFile.csv")
-hrReportFile = file.path(resultsPath, "hrReport.csv")
-qualtricsPath <- file.path(dataPath, "InteroceptionSummer2025_Qualtrics.xlsx")
-conditionPath <- file.path(dataPath, "ConditionLookup.xlsx")
+#specific data files 
+questionnaireFile = paste0(resultsPath, "questionnaireFile.csv")
+taskDataFile = paste0(resultsPath, "dataFile.csv")
+taskTestFile = paste0(resultsPath, "testFile.csv")
 
 # Set Up---------
 ## Load libraries ---------
@@ -339,130 +338,4 @@ pData$Age
 
 
 write.csv(pData,file = questionnaireFile, row.names = FALSE)
-
-# ============================================================
-# Scale Reliability and Descriptive Statistics
-# Appended to Intero2025_PrepQualtrics.R
-#
-# Extracts Cronbach's alpha from existing scoreItems objects
-# (already computed above) plus descriptive statistics for
-# all scored scales. Outputs to table_scale_reliability.csv.
-# Does not modify any existing outputs.
-#
-# For 2-item subscales (PHQ-4 Anxiety, PHQ-4 Depression,
-# MSES_selfdoubt), alpha is unreliable and is replaced by
-# the inter-item Pearson r.
-# ============================================================
-
-message("\n=== Scale Reliability and Descriptive Statistics ===")
-
-# ── Helper: extract alpha + descriptives from a scoreItems object ─────────
-# score_obj : output of psych::scoreItems()
-# scale_name: character label for the scale (e.g. "MAIA-2")
-# pdata_df  : data frame containing the scored columns (pData here)
-.scale_reliability <- function(score_obj, scale_name, pdata_df) {
-  alphas <- score_obj$alpha
-  dplyr::bind_rows(lapply(colnames(alphas), function(sub) {
-    col  <- pdata_df[[sub]]
-    vals <- col[!is.na(col)]
-    tibble::tibble(
-      scale    = scale_name,
-      subscale = sub,
-      alpha    = round(as.numeric(alphas["alpha", sub]), 3),
-      n        = length(vals),
-      M        = round(mean(vals), 2),
-      SD       = round(sd(vals),   2),
-      min_obs  = round(min(vals),  2),
-      max_obs  = round(max(vals),  2)
-    )
-  }))
-}
-# ── Helper: inter-item r for 2-item subscales ─────────────────────────────
-.interitem_r <- function(x, y) {
-  round(cor(as.numeric(x), as.numeric(y), use = "complete.obs"), 3)
-}
-
-# ── Extract reliability for all scored scales ─────────────────────────────
-
-# Alpha from existing scoreItems objects (already computed above)
-rel_maia  <- .scale_reliability(maia_scores,  "MAIA-2",  pData)
-rel_bips  <- .scale_reliability(bips_scores,  "BIPS",    pData)
-rel_barq  <- .scale_reliability(barq_scores,  "BARQ-R",  pData)
-rel_spane <- .scale_reliability(spane_scores, "SPANE",   pData)
-rel_mses  <- .scale_reliability(mses_scores,  "MSES-12", pData)
-rel_alex  <- .scale_reliability(alex_scores,  "PAQ-S",   pData)
-
-# PHQ-4: 2-item subscales -- alpha omitted, inter-item r added below
-rel_phq <- tibble::tibble(
-  scale    = "PHQ-4",
-  subscale = c("PHQ4_Anxiety", "PHQ4_Depression"),
-  alpha    = NA_real_,
-  n        = c(sum(!is.na(pData$Anxiety)),    sum(!is.na(pData$Depression))),
-  M        = c(round(mean(pData$Anxiety,    na.rm = TRUE), 2),
-               round(mean(pData$Depression, na.rm = TRUE), 2)),
-  SD       = c(round(sd(pData$Anxiety,      na.rm = TRUE), 2),
-               round(sd(pData$Depression,   na.rm = TRUE), 2)),
-  min_obs  = c(round(min(pData$Anxiety,    na.rm = TRUE), 2),
-               round(min(pData$Depression, na.rm = TRUE), 2)),
-  max_obs  = c(round(max(pData$Anxiety,    na.rm = TRUE), 2),
-               round(max(pData$Depression, na.rm = TRUE), 2))
-)
-
-# ── Combine, annotate n_items and inter-item r ────────────────────────────
-table_reliability <- dplyr::bind_rows(
-  rel_maia, rel_bips, rel_barq, rel_spane, rel_mses, rel_alex, rel_phq
-) |>
-  dplyr::mutate(
-    n_items = dplyr::case_when(
-      subscale == "MAIA"            ~ 24L,
-      subscale %in% c("MAIA_Notice", "MAIA_NotDistract", "MAIA_NotWorry",
-                      "MAIA_AttentionReg", "MAIA_EmoAware", "MAIA_SelfReg",
-                      "MAIA_BodyListen", "MAIA_Trust")       ~ 3L,
-      subscale == "Stress"          ~ 9L,    # BIPS total
-      subscale == "BARQ"            ~ 12L,
-      subscale %in% c("Pos", "Neg") ~ 6L,   # SPANE subscales
-      subscale == "MSES"            ~ 12L,
-      subscale == "MSES_selfdoubt"  ~ 2L,
-      subscale == "Alexithymia"     ~ 6L,
-      subscale %in% c("PHQ4_Anxiety", "PHQ4_Depression") ~ 2L,
-      TRUE ~ NA_integer_
-    ),
-    # Inter-item r for 2-item subscales (alpha not interpretable)
-    interitem_r = dplyr::case_when(
-      subscale == "MSES_selfdoubt" ~
-        .interitem_r(qData$MSES12_Doubt,    qData$MSES12_Unhappy),
-      subscale == "PHQ4_Anxiety" ~
-        .interitem_r(qData$PHQ4_Nervous,    qData$PHQ4_Worry),
-      subscale == "PHQ4_Depression" ~
-        .interitem_r(qData$PHQ4_Depressed,  qData$PHQ4_LittleInterest),
-      TRUE ~ NA_real_
-    ),
-    # Suppress alpha for 2-item subscales (replace with interitem_r above)
-    alpha = dplyr::if_else(n_items == 2L, NA_real_, alpha),
-    note = dplyr::case_when(
-      n_items == 2L ~ "2-item subscale; alpha not reported, see interitem_r",
-      n_items == 3L ~ "3-item subscale; alpha interpreted with caution",
-      TRUE          ~ ""
-    )
-  ) |>
-  dplyr::select(scale, subscale, n_items, n, M, SD, min_obs, max_obs,
-                alpha, interitem_r, note)
-
-# ── Print summary ─────────────────────────────────────────────────────────
-cat("\n--- Reliability summary ---\n")
-print(
-  table_reliability |>
-    dplyr::select(scale, subscale, n_items, alpha, interitem_r, n) |>
-    as.data.frame(),
-  row.names = FALSE
-)
-
-# ── Save ─────────────────────────────────────────────────────────────────
-readr::write_csv(
-  table_reliability,
-  file.path(resultsPath, "table_scale_reliability.csv")
-)
-message(sprintf(
-  "Saved: table_scale_reliability.csv (%d rows)", nrow(table_reliability)
-))
 

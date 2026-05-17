@@ -12,7 +12,10 @@ for (thispack in packages) {
   library(thispack, character.only = TRUE, quietly = TRUE, verbose = FALSE)
 }
 
-DDIR <- "I:/Shared drives/Interoception 2025/Paper/Data"
+
+DDIR    <- file.path(MAIN_DIR,"Data")
+FIG_DIR <- file.path(MAIN_DIR,"Figures")
+
 ctrl <- lmerControl(optimizer = "bobyqa")
 
 # --- Colour theme -----------------------------------------------------------
@@ -201,12 +204,12 @@ print(p_combined)
 
 # --- Save -------------------------------------------------------------------
 
-fig_path <- "I:/Shared drives/Interoception 2025/Paper/Figures"
 
-ggsave(file.path(fig_path, "fig_replication.pdf"),
+
+ggsave(file.path(FIG_DIR, "fig_arousal.pdf"),
        plot = p_combined, width = 10, height = 7, device = "pdf")
 
-ggsave(file.path(fig_path, "fig_replication.png"),
+ggsave(file.path(FIG_DIR, "fig_arousal.png"),
        plot = p_combined, width = 10, height = 7, dpi = 300)
 
 cat("Figure saved to", fig_path, "\n")

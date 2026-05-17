@@ -39,9 +39,9 @@ for (thispack in packages) {
 # ============================================================
 # 1. Load Raw Data
 # ============================================================
-staircase <- read_csv(paste0(raw_dir, "study4_longData.csv"))
-test_phase <- read_csv(paste0(raw_dir, "study4_testData.csv"))
-qualtrics  <- read_excel(paste0(raw_dir, "study4_questionnairedata.xlsx"),
+staircase <- read_csv(file.path(raw_dir, "study4_longData.csv"))
+test_phase <- read_csv(file.path(raw_dir, "study4_testData.csv"))
+qualtrics  <- read_excel(file.path(raw_dir, "study4_questionnairedata.xlsx"),
                          sheet = "Sheet0") |>  # Sheet0 = questionnaire data;
                                                 # Sheet1 is a participant tracking log
   # Standard Qualtrics export has 2 header rows:

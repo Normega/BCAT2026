@@ -27,11 +27,12 @@
 #   (studyX_test.csv also written for Studies 4 and 5)
 # ============================================================
 
-base_dir   <- "." #insert base directory here
-script_dir <- file.path(base_dir, "analysis", "DataCleaning", "")
+base_dir = "I:/Shared drives/Interoception 2025/Paper/"
+#base_dir   <- "." #insert base directory here
+script_dir <- file.path(base_dir, "analysis", "DataCleaning", "/")
 
-data_dir <- file.path(base_dir, "data", "")
-raw_dir  <- file.path(base_dir, "data", "RawData", "")  # not included; see OSF
+data_dir <- file.path(base_dir, "Data", "/")
+raw_dir  <- file.path(base_dir, "RawData", "/")  # not included; see OSF
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
 message("========================================")

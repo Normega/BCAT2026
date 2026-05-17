@@ -209,6 +209,9 @@ source(paste0(ANALYSIS_DIR, "analysis_s8_maia_selfesteem.R"))
 # HBD cardiac interoception (exploratory)
 source(paste0(ANALYSIS_DIR, "analysis_hbd.R"))
 
+# Arousal Confidence Coupling Exploration
+source(paste0(ANALYSIS_DIR, "analysis_s9_conf_arousal_coupling.R"))
+
 # ── Zip all results ───────────────────────────────────────────
 result_files <- list.files(RESULTS_DIR, pattern = "\\.csv$", full.names = TRUE)
 zip(zipfile = file.path(RESULTS_DIR, "all_results.zip"), files = result_files)
