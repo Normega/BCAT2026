@@ -152,8 +152,9 @@ ANALYSIS_DIR <- file.path(BASE_DIR, "Analysis")
 RESULTS_DIR  <- file.path(BASE_DIR, "Results")
 FIG_DIR      <- file.path(RESULTS_DIR, "Figures")
 MODEL_DIR    <- file.path(RESULTS_DIR, "Models")
+RDS_DIR <- file.path(RESULTS_DIR, "Models", "TestRDS")
 
-for (.d in c(RESULTS_DIR, FIG_DIR, MODEL_DIR)) {
+for (.d in c(RESULTS_DIR, FIG_DIR, MODEL_DIR, RDS_DIR)) {
   dir.create(.d, showWarnings = FALSE, recursive = TRUE)
 }
 rm(.d)
