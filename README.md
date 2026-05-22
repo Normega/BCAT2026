@@ -1,12 +1,32 @@
 # What You Miss Won't Move You
 ## Awareness Connects Respiratory Change to Subjective Arousal
 
-This repository contains analysis code and processed data for a five-study
-empirical paper investigating whether conscious detection of breathing changes
-is required for those changes to influence subjective arousal.
+This repository contains analysis code for a five-study empirical paper
+investigating whether conscious detection of breathing changes is required
+for those changes to influence subjective arousal.
 
 **Preregistration (Study 5):** https://bit.ly/436SSrv
+
 **OSF archive (data, RDS objects, trial by trial QC files):** https://bit.ly/4txemZy
+
+---
+
+## Replication instructions
+
+1. Clone this repository.
+2. Download the `Data/` directory from the OSF archive (https://bit.ly/4txemZy)
+   and place it in the base directory of the repository.
+3. Open R, set the working directory to the repository root, and run:
+
+```r
+source("Analysis/MainAnalysis.R")
+```
+
+`MainAnalysis.R` runs all five studies in order, writes result CSVs to
+`Results/`, generates all manuscript figures to `Figures/`, and builds
+the formatted table documents in `Tables/`. Total runtime is approximately
+45–90 minutes depending on hardware (Bayesian models in Studies 4 and 5
+are the bottleneck).
 
 ---
 
@@ -14,42 +34,73 @@ is required for those changes to influence subjective arousal.
 
 ```
 /
-├── analysis/               Main analysis pipeline (all studies)
-│   ├── MainAnalysis.R      Entry point — source this to run everything
-│   ├── utils.R             Helper functions
-│   ├── models.R            Model-fitting functions (LMM, MAIA, etc.)
-│   ├── meta_analysis.R     Random-effects meta-analysis functions
-│   ├── analysis_arousal.R  H4A–H4C: arousal transfer tests
-│   ├── analysis_maia.R     H3A–H3B: MAIA dissociation
-│   ├── analysis_validation.R  H1, H2, H5: task validation
+├── Analysis/
+│   ├── MainAnalysis.R          Entry point — source this to run everything
+│   │                           (analyses, figures, and tables)
+│   ├── utils.R                 Shared helper functions
+│   ├── theme_bcat.R            ggplot theme
+│   ├── meta_analysis.R         Random-effects meta-analysis across studies
+│   │
+│   ├── analysis_arousal.R      H4A–H4C: arousal transfer tests
+│   ├── analysis_belt.R         Study 5 belt compliance and salience
+│   ├── analysis_hbd.R          Heartbeat detection analyses
+│   ├── analysis_individual_differences.R
+│   ├── analysis_maia.R         H3A–H3B: MAIA dissociation
+│   ├── analysis_miss_baseline.R
+│   ├── analysis_s4_entrainment.R
+│   ├── analysis_s7_maia_selfesteem.R
 │   ├── analysis_study3_attraction_mediation.R
-│   ├── tables_format.R     APA table formatter (reads results/ CSVs)
-│   └── DataCleaning/       Study-level data cleaning scripts
+│   ├── analysis_study5_exploratory.R
+│   ├── analysis_tce.R          TCE (threshold crossing events) analyses
+│   ├── analysis_val_detection.R
+│   ├── analysis_val_pilot_studies.R
+│   ├── analysis_val_thresholds.R
+│   ├── belt_salience_followup.R
+│   ├── test_block_accuracy.R
+│   ├── test_block_arousal.R
+│   │
+│   ├── fig_accuracy.R          Figure scripts (called by MainAnalysis.R)
+│   ├── fig_arousal.R
+│   ├── fig_regime_comparison.R
+│   ├── fig_staircase.R
+│   │
+│   ├── Build_Main_Tables.R     Table-building scripts (called by MainAnalysis.R)
+│   ├── Build_Reliability_Tables.R
+│   ├── Build_Supplementary_Tables.R
+│   │
+│   ├── DataCleaning/           Study-level cleaning scripts
+│   │   ├── run_all_cleaning.R
+│   │   ├── study1_clean.R
+│   │   ├── study2_clean.R
+│   │   ├── study3_clean.R
+│   │   ├── study4_clean.R
+│   │   └── study5_clean.R
+│   │
+│   ├── ScaleReliability/       Scale reliability prep scripts
+│   │   ├── Study1_PrepScales.R
+│   │   ├── Study2_PrepScales.R
+│   │   ├── Study3_PrepScales.R
+│   │   ├── Study4_PrepScales.R
+│   │   └── Study5_PrepScales.R
+│   │
+│   └── Study5/                 Study 5 physiological processing pipeline
+│       ├── study5_processing_README.md   ← read before running physio scripts
+│       ├── breath_pipeline.R
+│       ├── analysis_study5.R
+│       └── Intero2025_*.R      Individual processing steps
 │
-├── study5_processing/      Study 5 physiological pipeline
-│   ├── README.md           ← read this before running any physio scripts
-│   └── *.R                 Processing scripts (require raw data from OSF)
+├── Tasks/
+│   └── Study2.jsPsych.Code/    jsPsych task code for Study 2 (submodule)
 │
-├── data/                   Processed summary data (one row per participant)
-│   ├── study1_summary.csv
-│   ├── study2_summary.csv
-│   ├── study3_summary.csv
-│   ├── study4_summary.csv
-│   └── study5_summary.csv
-│
-└── results/                Output CSVs from MainAnalysis.R
-    ├── table_arousal.csv
-    ├── table_maia.csv
-    ├── meta_h4b_pooled.csv
-    ├── meta_h3_maia_dissociation.csv
-    └── ...
+├── Data/                       Not in git — download from OSF archive
+├── Results/                    Not in git — generated by MainAnalysis.R
+├── Figures/                    Not in git — generated by MainAnalysis.R
+└── Tables/                     Not in git — generated by MainAnalysis.R
 ```
 
 ---
 
-## Running the analysis
-
-### Requirements
+## Requirements
 
 - R ≥ 4.2.0
 - Key packages: `brms`, `lme4`, `lmerTest`, `broom.mixed`, `mediation`,
@@ -65,38 +116,13 @@ install.packages(c(
 ))
 ```
 
-### Running from repo root
-
-```r
-source("analysis/MainAnalysis.R")
-```
-
-This runs all five studies in order and writes output CSVs to `results/`.
-Total runtime is approximately 45–90 minutes depending on hardware
-(Bayesian models in Studies 4 and 5 are the bottleneck).
-
-### Generating tables
-
-After `MainAnalysis.R` completes:
-
-```r
-source("analysis/tables_format.R")
-```
-
-Outputs `results/tables_main.docx` and `results/tables_supplement.docx`.
-
-### Study 5 physiological pipeline
-
-Raw physiological files are archived on OSF (not in this repo).
-See `study5_processing/README.md` for the full pipeline and execution order.
-
 ---
 
 ## Data
 
-`data/` contains one processed summary CSV per study (one row per participant).
-These are the files read by `MainAnalysis.R`. Raw PsychoPy output, Qualtrics
-exports, and physiological recordings are archived on OSF.
+Processed summary CSVs (one row per participant per study) are archived on
+OSF and are read directly by `MainAnalysis.R`. Raw PsychoPy output, Qualtrics
+exports, and physiological recordings are also on OSF.
 
 Participant IDs have been anonymized. No identifying information is present
 in the summary CSVs.
@@ -105,8 +131,8 @@ in the summary CSVs.
 
 ## Deviations from preregistration
 
-Study 5 was preregistered at https://osf.io/r6zja. Deviations are documented
-in the Supplementary Materials (Supplementary S5).
+Deviations from the Study 5 preregistration are documented in the
+Supplementary Materials, available on the OSF archive: https://bit.ly/4txemZy
 
 ---
 
@@ -114,4 +140,3 @@ in the Supplementary Materials (Supplementary S5).
 
 Code: MIT License  
 Data: CC-BY 4.0
-
