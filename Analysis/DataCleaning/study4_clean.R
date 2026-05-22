@@ -321,10 +321,25 @@ test_out <- test_phase |>
     Accuracy   = as.numeric(Accuracy),
     Arousal    = as.numeric(Arousal),
     Confidence = as.numeric(Confidence),
+    # Recode numeric codes to string labels before factoring
+    # (study4_testData.csv stores Salience as 0/1 and Direction as -1/1)
+    Salience  = dplyr::case_when(
+      Salience == 0 ~ "Low",
+      Salience == 1 ~ "High",
+      TRUE          ~ as.character(Salience)
+    ),
+    Direction = dplyr::case_when(
+      Direction == -1 ~ "Faster",
+      Direction ==  1 ~ "Slower",
+      TRUE            ~ as.character(Direction)
+    ),
     Salience   = factor(Salience, levels = c("Low", "High")),
     Direction  = factor(Direction, levels = c("Faster", "Slower")),
     Group      = factor(Group, levels = c("Breath", "Visual"))
   ) |>
+  dplyr::group_by(id) |>
+  dplyr::mutate(Trial = dplyr::row_number()) |>
+  dplyr::ungroup() |>
   dplyr::select(
     study_id, id, Group, Trial, Condition, Salience, Direction,
     Level, Accuracy, Confidence, Arousal, flag_zero_variance
@@ -433,10 +448,10 @@ message("Summary rows: ", nrow(summary_df))
 # ============================================================
 # 6. Write Outputs
 # ============================================================
-write_csv(long,          paste0(data_dir, "study4_long.csv"))
-write_csv(test_out,      paste0(data_dir, "study4_test.csv"))
-write_csv(summary_df,    paste0(data_dir, "study4_summary.csv"))
-write_csv(exclusion_log, paste0(data_dir, "study4_exclusions.csv"))
+write_csv(long,          file.path(data_dir, "study4_long.csv"))
+write_csv(test_out,      file.path(data_dir, "study4_test.csv"))
+write_csv(summary_df,    file.path(data_dir, "study4_summary.csv"))
+write_csv(exclusion_log, file.path(data_dir, "study4_exclusions.csv"))
 
 message("Study 4 cleaning complete.")
 message("  Staircase long: ", nrow(long),       " rows")

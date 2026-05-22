@@ -10,10 +10,10 @@
 # Frequentist: mediation package. Bayesian: brms.
 # ============================================================
 
-source(paste0(ANALYSIS_DIR, "theme_bcat.R"))
+source(file.path(ANALYSIS_DIR, "theme_bcat.R"))
 
-fig_dir   <- paste0(FIG_DIR,   "Study3/")
-cache_dir <- paste0(MODEL_DIR, "Study3/")
+fig_dir   <- file.path(FIG_DIR, "Study3")
+cache_dir <- file.path(MODEL_DIR, "Study3")
 dir.create(fig_dir,   showWarnings = FALSE, recursive = TRUE)
 dir.create(cache_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -269,8 +269,8 @@ print_med(med_m3, "M3: Mediation + fatigue + Salience")
 #    Multivariate formulation: simultaneous estimation of path a and path b
 #    Correct multilevel bootstrap via posterior sampling
 # ============================================================
-cache_m0  <- paste0(cache_dir, "brms_m0.rds")
-cache_m1  <- paste0(cache_dir, "brms_m1.rds")
+cache_m0  <- file.path(cache_dir, "brms_m0.rds")
+cache_m1  <- file.path(cache_dir, "brms_m1.rds")
 
 brms_ctrl <- list(adapt_delta = 0.95, max_treedepth = 12)
 
@@ -445,10 +445,10 @@ p_forest <- ggplot(plot_data, aes(x = est, y = Condition, colour = Model,
   theme(legend.position = "bottom",
         panel.grid.minor = element_blank())
 
-ggsave(paste0(fig_dir, "mediation_forest.pdf"), p_forest,
+ggsave(file.path(fig_dir, "mediation_forest.pdf"), p_forest,
        width = 7, height = 4, device = "pdf")
 
-cat("\nFigure saved:", paste0(fig_dir, "mediation_forest.pdf"), "\n")
+cat("\nFigure saved:", file.path(fig_dir, "mediation_forest.pdf"), "\n")
 cat("\nStudy 3 mediation analysis complete.\n")
 
 # ============================================================
@@ -542,7 +542,7 @@ if ("Awareness" %in% names(s3l_maia) && !all(is.na(s3l_maia$Awareness))) {
 }
 
 # ── 10d. Bayesian MAIA moderation ─────────────────────────────
-cache_m_maia <- paste0(cache_dir, "brms_maia_moderation.rds")
+cache_m_maia <- file.path(cache_dir, "brms_maia_moderation.rds")
 bf_a_maia <- brms::bf(Arousal    ~ Change * MAIA_total_z + Change2 + (1 | id))
 bf_b_maia <- brms::bf(Attraction ~ Arousal + Change + Change2 + MAIA_total_z +
                           (1 | id))
@@ -582,7 +582,7 @@ cat("\nSaving mediation results to CSV...\n")
 
 # ── Primary mediation table (M0, M2, M3 robustness) ──────────
 readr::write_csv(mediation_table,
-                 paste0(RESULTS_DIR, "study3_mediation_primary.csv"))
+                 file.path(RESULTS_DIR, "study3_mediation_primary.csv"))
 
 # ── M1a: Subset approach (hits vs misses) ─────────────────────
 m1a_table <- tibble::tibble(
@@ -598,7 +598,7 @@ m1a_table <- tibble::tibble(
   note      = "Selection bias caveat: hits have larger |Change| than misses"
 )
 readr::write_csv(m1a_table,
-                 paste0(RESULTS_DIR, "study3_mediation_m1a_subset.csv"))
+                 file.path(RESULTS_DIR, "study3_mediation_m1a_subset.csv"))
 
 # ── M1b: Analytic conditional ACMEs ───────────────────────────
 m1b_table <- tibble::tibble(
@@ -610,12 +610,12 @@ m1b_table <- tibble::tibble(
   note       = "CIs from Bayesian M1 model (see study3_mediation_bayesian.csv)"
 )
 readr::write_csv(m1b_table,
-                 paste0(RESULTS_DIR, "study3_mediation_m1b_analytic.csv"))
+                 file.path(RESULTS_DIR, "study3_mediation_m1b_analytic.csv"))
 
 # ── Bayesian M0: indirect effect ──────────────────────────────
 readr::write_csv(
   acme_summary |> dplyr::mutate(model = "Bayesian M0"),
-  paste0(RESULTS_DIR, "study3_mediation_bayesian_m0.csv")
+  file.path(RESULTS_DIR, "study3_mediation_bayesian_m0.csv")
 )
 
 # ── Bayesian M1: conditional ACMEs ────────────────────────────
@@ -640,13 +640,13 @@ bayes_m1_table <- tibble::tibble(
   )
 )
 readr::write_csv(bayes_m1_table,
-                 paste0(RESULTS_DIR, "study3_mediation_bayesian_m1.csv"))
+                 file.path(RESULTS_DIR, "study3_mediation_bayesian_m1.csv"))
 
 # ── MAIA protection: path a moderation ────────────────────────
 maia_mod_cf <- broom.mixed::tidy(m10_a_maia, effects = "fixed",
                                   conf.int = TRUE)
 readr::write_csv(maia_mod_cf,
-                 paste0(RESULTS_DIR, "study3_maia_moderation_path_a.csv"))
+                 file.path(RESULTS_DIR, "study3_maia_moderation_path_a.csv"))
 
 # Conditional ACMEs at +/- 1 SD MAIA
 maia_acme_table <- tibble::tibble(
@@ -662,7 +662,7 @@ maia_acme_table <- tibble::tibble(
   note       = "Bayesian CIs from brms_maia_moderation.rds"
 )
 readr::write_csv(maia_acme_table,
-                 paste0(RESULTS_DIR, "study3_maia_protection_acme.csv"))
+                 file.path(RESULTS_DIR, "study3_maia_protection_acme.csv"))
 
 # ── Bayesian MAIA moderation ───────────────────────────────────
 if (exists("post_maia") && length(int_col) > 0) {
@@ -675,7 +675,7 @@ if (exists("post_maia") && length(int_col) > 0) {
     interpretation = "P(b<0)>0.95 → high MAIA reliably attenuates arousal transfer"
   )
   readr::write_csv(bayes_maia_table,
-                   paste0(RESULTS_DIR, "study3_maia_bayesian_moderation.csv"))
+                   file.path(RESULTS_DIR, "study3_maia_bayesian_moderation.csv"))
 }
 
 message("\nStudy 3 mediation CSVs written to: ", RESULTS_DIR)

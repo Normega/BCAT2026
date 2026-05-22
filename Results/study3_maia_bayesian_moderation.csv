@@ -1,2 +1,0 @@
-parameter,mean,lower_95,upper_95,p_negative,interpretation
-Change x MAIA_z (path a),8.45757409812933e-4,-0.04827689339559686,0.04939718255450573,0.47933333333333333,P(b<0)>0.95 → high MAIA reliably attenuates arousal transfer

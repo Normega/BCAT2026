@@ -4,8 +4,8 @@
 #   Row 1: Study 1A | Study 2 | Study 3
 #   Row 2: Study 4  | Study 5 | Forest plot (Change -> Accuracy partial r)
 #
-# Studies 4 and 5 split by Salience (High / Low).
-# Studies 1A, 2, 3 have no salience manipulation — single smooth.
+# Studies 3, 4 and 5 split by Salience (High / Low).
+# Studies 1A and 2 have no salience manipulation — single smooth.
 # Forest plot: partial r of Change on Accuracy per study (GLM-derived).
 
 # Set Up ---------
@@ -18,8 +18,8 @@ for (thispack in packages) {
   library(thispack, character.only = TRUE, quietly = TRUE, verbose = FALSE)
 }
 
-DDIR    <- file.path(MAIN_DIR,"Data")
-FIG_DIR <- file.path(MAIN_DIR,"Figures")
+DDIR    <- file.path(BASE_DIR,"Data")
+FIG_DIR <- file.path(BASE_DIR,"Figures")
 
 ctrl     <- lmerControl(optimizer = "bobyqa")
 
@@ -138,7 +138,8 @@ make_acc_panel <- function(df, title, subtitle = NULL,
 make_acc_panel_sal <- function(df, title, subtitle = NULL,
                                 show_y = TRUE, show_legend = FALSE,
                                 x_breaks = c(-0.5, 0, 0.5),
-                                x_labels = c("-0.5", "0", "0.5")) {
+                                x_labels = c("-0.5", "0", "0.5"),
+                                y_floor = 0.33) {
   df <- dplyr::filter(df,
                       Direction %in% c("Faster", "Slower"),
                       !is.na(Accuracy), !is.na(Change), !is.na(Salience)) |>
@@ -166,7 +167,7 @@ make_acc_panel_sal <- function(df, title, subtitle = NULL,
     scale_fill_manual(values = sal_cols, labels = sal_labels,
                       name = "Salience") +
     scale_x_continuous(breaks = x_breaks, labels = x_labels) +
-    scale_y_continuous(limits = c(0.33, 1),
+    scale_y_continuous(limits = c(y_floor, 1),
                        breaks = c(0.33, 0.67, 1),
                        labels = c(".33", ".67", "1")) +
     labs(x        = "Breathing rate change",
@@ -199,12 +200,13 @@ p2 <- make_acc_panel(s2l,
                      subtitle = "Online  |  N = 166",
                      show_y   = FALSE)
 
-p3 <- make_acc_panel(s3l,
-                     title    = "Study 3 *",
-                     subtitle = "Lab  |  N = 103  |  Fixed magnitudes",
-                     show_y   = FALSE,
-                     x_breaks = c(-0.65, 0, 0.65),
-                     x_labels = c("-0.65", "0", "0.65"))
+p3 <- make_acc_panel_sal(s3l,
+                         title    = "Study 3 *",
+                         subtitle = "Lab  |  N = 103  |  Fixed magnitudes",
+                         show_y   = FALSE,
+                         x_breaks = c(-0.65, 0, 0.65),
+                         x_labels = c("-0.65", "0", "0.65"),
+                         y_floor  = 0.10)
 
 p4 <- make_acc_panel_sal(s4l,
                           title    = "Study 4",
@@ -238,8 +240,10 @@ forest_df <- dplyr::bind_rows(
   # Studies without salience split
   .changeq_row(s1l, "Study 1",   n_pp = 181),
   .changeq_row(s2l, "Study 2",   n_pp = 166),
-  .changeq_row(dplyr::filter(s3l,
-    Direction %in% c("Faster","Slower")), "Study 3 *", n_pp = 103),
+  # Study 3: single pooled estimate (fixed magnitudes inflate partial r;
+  # salience split not comparable to staircase studies)
+  .changeq_row(dplyr::filter(s3l, Direction %in% c("Faster","Slower")),
+               "Study 3 *", n_pp = 103),
   # Studies 4-5 split by salience
   .changeq_row(dplyr::filter(s4l, Salience == "High"), "Study 4", "High", 131),
   .changeq_row(dplyr::filter(s4l, Salience == "Low"),  "Study 4", "Low",  131),
@@ -346,8 +350,9 @@ p_combined <- (p1 | p2 | p3) / (p4 | p5 | p_forest) +
     caption    = paste0(
       "* Study 3 used fixed change magnitudes (+/-.20 to +/-.65); ",
       "partial r is inflated relative to staircase studies.\n",
-      "Shaded regions: 95% CI.  Studies 4-5: High (orange) and Low (blue) salience.\n",
-      "Panel F: partial r of Change\u00b2 on accuracy; Studies 4-5 split by salience."
+      "Shaded regions: 95% CI.  Studies 3-5: High (orange) and Low (blue) salience.\n",
+      "Panel F: partial r of Change\u00b2 on accuracy; Studies 4-5 split by salience; ",
+      "Study 3 pooled (salience split not comparable due to fixed magnitudes)."
     ),
     theme = theme(
       plot.tag        = element_text(face = "bold", size = 12),

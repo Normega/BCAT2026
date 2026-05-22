@@ -8,16 +8,16 @@ rm(list=ls())
 # resultsPath = "I:/Shared drives/Interoception 2025/Results/"
 
 winpath      <- "i:/Shared drives/Interoception 2025/"
-dataPath     <- paste0(winpath, "Data/")
-resultsPath  <- paste0(winpath, "Results/")
-taskPath      <- paste0(dataPath, "Behaviour/")
-qualtricsPath <- paste0(dataPath, "InteroceptionSummer2025_Qualtrics.xlsx")
-conditionPath <- paste0(dataPath, "ConditionLookup.xlsx")
+dataPath     <- file.path(winpath, "Data")
+resultsPath  <- file.path(winpath, "Results")
+taskPath      <- file.path(dataPath, "Behaviour")
+qualtricsPath <- file.path(dataPath, "InteroceptionSummer2025_Qualtrics.xlsx")
+conditionPath <- file.path(dataPath, "ConditionLookup.xlsx")
 
 #specific data files 
-questionnaireFile = paste0(resultsPath, "questionnaireFile.csv")
-taskDataFile = paste0(resultsPath, "dataFile.csv")
-taskTestFile = paste0(resultsPath, "testFile.csv")
+questionnaireFile = file.path(resultsPath, "questionnaireFile.csv")
+taskDataFile = file.path(resultsPath, "dataFile.csv")
+taskTestFile = file.path(resultsPath, "testFile.csv")
 
 # Set Up---------
 ## Load libraries ---------

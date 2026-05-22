@@ -12,7 +12,7 @@
 #   plot_meta_figures()  — forest plots
 # ============================================================
 
-meta_fig_dir <- paste0(FIG_DIR, "MetaAnalysis/")
+meta_fig_dir <- file.path(FIG_DIR, "MetaAnalysis")
 dir.create(meta_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 
@@ -271,7 +271,7 @@ write_meta_results <- function(h4b_meta, h3_meta,
   if (!is.null(h4b_meta)) {
     readr::write_csv(
       h4b_meta$data,
-      paste0(RESULTS_DIR, "meta_h4b_study_estimates.csv")
+      file.path(RESULTS_DIR, "meta_h4b_study_estimates.csv")
     )
     rma <- h4b_meta$rma
     tibble::tibble(
@@ -285,18 +285,18 @@ write_meta_results <- function(h4b_meta, h3_meta,
       tau2      = rma$tau2,
       Q_stat    = rma$QE,
       Q_p       = rma$QEp
-    ) |> readr::write_csv(paste0(RESULTS_DIR, "meta_h4b_pooled.csv"))
+    ) |> readr::write_csv(file.path(RESULTS_DIR, "meta_h4b_pooled.csv"))
     message("  meta_h4b_*.csv")
   }
 
   if (!is.null(h3_meta$summary)) {
     readr::write_csv(h3_meta$summary,
-                     paste0(RESULTS_DIR, "meta_h3_maia_dissociation.csv"))
+                     file.path(RESULTS_DIR, "meta_h3_maia_dissociation.csv"))
     for (out in c("Confidence", "Threshold")) {
       if (!is.null(h3_meta[[out]])) {
         readr::write_csv(
           as.data.frame(h3_meta[[out]]$data),
-          paste0(RESULTS_DIR, "meta_h3_", tolower(out), "_studies.csv")
+          file.path(RESULTS_DIR, paste0("meta_h3_", tolower(out), "_studies.csv"))
         )
       }
     }
@@ -305,10 +305,10 @@ write_meta_results <- function(h4b_meta, h3_meta,
 
   if (!is.null(h1_meta))
     readr::write_csv(h1_meta$data,
-                     paste0(RESULTS_DIR, "meta_h1_direction_studies.csv"))
+                     file.path(RESULTS_DIR, "meta_h1_direction_studies.csv"))
   if (!is.null(h2_meta))
     readr::write_csv(h2_meta$data,
-                     paste0(RESULTS_DIR, "meta_h2_salience_studies.csv"))
+                     file.path(RESULTS_DIR, "meta_h2_salience_studies.csv"))
 
   message("Meta-analysis results written to: ", RESULTS_DIR)
 }
@@ -414,7 +414,7 @@ plot_meta_figures <- function(h4b_meta, h3_meta) {
       )
     )
 
-    ggplot2::ggsave(paste0(meta_fig_dir, "meta_h4b_forest.pdf"),
+    ggplot2::ggsave(file.path(meta_fig_dir, "meta_h4b_forest.pdf"),
                    f1, width = 8, height = 5.5, device = "pdf")
     message("Saved: meta_h4b_forest.pdf")
   }
@@ -473,7 +473,7 @@ plot_meta_figures <- function(h4b_meta, h3_meta) {
         )
       )
 
-    ggplot2::ggsave(paste0(meta_fig_dir, "meta_h3_maia_dissociation.pdf"),
+    ggplot2::ggsave(file.path(meta_fig_dir, "meta_h3_maia_dissociation.pdf"),
                    f2, width = 12, height = 5.5, device = "pdf")
     message("Saved: meta_h3_maia_dissociation.pdf")
   }

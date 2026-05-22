@@ -6,7 +6,7 @@
 #          hbd5_sensitivity.csv, hbd_summary.csv
 # ============================================================
 
-source(paste0(ANALYSIS_DIR, "theme_bcat.R"))
+source(file.path(ANALYSIS_DIR, "theme_bcat.R"))
 
 packages <- c("tidyverse", "lme4", "lmerTest",
               "BayesFactor", "broom.mixed", "MuMIn",
@@ -17,7 +17,7 @@ options(readr.show_col_types = FALSE)
 for (p in packages) library(p, character.only = TRUE, quietly = TRUE)
 
 
-hbd_fig_dir <- paste0(FIG_DIR, "Study5_HBD/")
+hbd_fig_dir <- file.path(FIG_DIR, "Study5_HBD")
 dir.create(hbd_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 # ── Load ──────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ miss_results <- purrr::map_dfr(miss_vars, function(v) {
     d=(mean(present)-mean(absent))/sqrt((var(present)+var(absent))/2))
 })
 print(as.data.frame(miss_results), digits=3, row.names=FALSE)
-readr::write_csv(miss_results, paste0(RESULTS_DIR,"hbd_missingness.csv"))
+readr::write_csv(miss_results, file.path(RESULTS_DIR, "hbd_missingness.csv"))
 
 # ── HBD-1. Convergent validity ───────────────────────────────
 cat("\n=== HBD-1: Schandry ~ BCAT threshold ===\n")
@@ -156,7 +156,7 @@ hbd3_table <- tibble::tibble(
                confint(hbd3_reg)["mean_confidence",2]),
   p_value  = c(hbd3_zero$p.value, hbd3_partial$p.value,
                summary(hbd3_reg)$coefficients["mean_confidence","Pr(>|t|)"]))
-readr::write_csv(hbd3_table, paste0(RESULTS_DIR,"hbd3_crossmodal.csv"))
+readr::write_csv(hbd3_table, file.path(RESULTS_DIR, "hbd3_crossmodal.csv"))
 
 # ── HBD-4. Arousal moderation (exploratory) ──────────────────
 cat("\n=== HBD-4: Arousal ~ Change × Schandry (exploratory) ===\n")
@@ -195,7 +195,7 @@ sens_table <- purrr::map_dfr(
       p_maia       = if(!is.null(rm)) rm$p.value  else NA)
   })
 print(as.data.frame(sens_table), digits=3, row.names=FALSE)
-readr::write_csv(sens_table, paste0(RESULTS_DIR,"hbd5_sensitivity.csv"))
+readr::write_csv(sens_table, file.path(RESULTS_DIR, "hbd5_sensitivity.csv"))
 
 # ── Summary CSV ──────────────────────────────────────────────
 hbd_summary <- tibble::tibble(
@@ -216,7 +216,7 @@ hbd_summary <- tibble::tibble(
                  hbd2_zero$p.value, hbd3_zero$p.value,
                  hbd3_partial$p.value),
   n          = c(nrow(d1), nrow(d1p), nrow(d2), nrow(d3), nrow(d3)))
-readr::write_csv(hbd_summary, paste0(RESULTS_DIR,"hbd_summary.csv"))
+readr::write_csv(hbd_summary, file.path(RESULTS_DIR, "hbd_summary.csv"))
 
 # ── Figure ────────────────────────────────────────────────────
 f_hbd <- hbd_summary |>
@@ -233,6 +233,6 @@ f_hbd <- hbd_summary |>
        x="Correlation (r)", y=NULL) +
   theme_minimal(base_size=12) +
   theme(plot.title=element_text(face="bold"), legend.position="bottom")
-ggsave(paste0(hbd_fig_dir,"hbd_summary_forest.pdf"),
+ggsave(file.path(hbd_fig_dir, "hbd_summary_forest.pdf"),
        f_hbd, width=9, height=6, device="pdf")
 message("analysis_hbd.R complete.")

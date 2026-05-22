@@ -14,10 +14,10 @@
 #          belt_direction_compliance_misses.csv, belt_salience_independence.csv
 # ============================================================
 
-source(paste0(ANALYSIS_DIR, "theme_bcat.R"))
+source(file.path(ANALYSIS_DIR, "theme_bcat.R"))
 
-belt_fig_dir   <- paste0(FIG_DIR,   "Study5_Belt/")
-belt_model_dir <- paste0(MODEL_DIR, "Study5_Belt/")
+belt_fig_dir   <- file.path(FIG_DIR,   "Study5_Belt")
+belt_model_dir <- file.path(MODEL_DIR, "Study5_Belt")
 dir.create(belt_fig_dir,   showWarnings = FALSE, recursive = TRUE)
 dir.create(belt_model_dir, showWarnings = FALSE, recursive = TRUE)
 
@@ -32,13 +32,13 @@ dir.create(belt_model_dir, showWarnings = FALSE, recursive = TRUE)
 #   NOT "poor". Check your qcFile version if R3 is unexpectedly large.
 # ============================================================
 build_regime_datasets <- function(qcFull, qcSummary) {
-
+  
   # ── Regime 2b: identify poor-synchrony participants ────────
   qcSummary <- qcSummary |>
     dplyr::mutate(
       breath_run = dplyr::if_else(first_condition == "Breath", 1L, 2L)
     )
-
+  
   regime2b_exclude <- qcSummary |>
     dplyr::mutate(id = as.integer(id)) |>
     dplyr::filter(run == breath_run) |>
@@ -47,20 +47,20 @@ build_regime_datasets <- function(qcFull, qcSummary) {
       pct_correct_breaths < 50
     ) |>
     dplyr::pull(id)
-
+  
   # ── Regime 3: unusable belt ─────────────────────────────────
   regime3_exclude <- qcSummary |>
     dplyr::mutate(id = as.integer(id)) |>
     dplyr::filter(belt_quality == "unusable") |>
     dplyr::pull(id) |>
     unique()
-
+  
   message(sprintf(
     "Regime exclusions — R2b: %d participants  |  R3 additional: %d",
     length(regime2b_exclude),
     length(setdiff(regime3_exclude, regime2b_exclude))
   ))
-
+  
   # ── Trial-level QC flags ────────────────────────────────────
   # The `condition` column in qcFull is contaminated with pipeline
   # logfile artefacts and cannot be used for filtering.
@@ -72,7 +72,7 @@ build_regime_datasets <- function(qcFull, qcSummary) {
   #               delta < 0 -> "Faster" (acceleration)
   #               delta > 0 -> "Slower" (deceleration)
   #               delta == 0 -> "NoChange"
-
+  
   qc_all <- qcFull |>
     dplyr::filter(!is.na(id), !is.na(run)) |>
     dplyr::mutate(
@@ -96,7 +96,7 @@ build_regime_datasets <- function(qcFull, qcSummary) {
         TRUE       ~ NA_character_
       )
     )
-
+  
   # Paced change trials = breath condition, not NoChange
   qc_paced <- qc_all |>
     dplyr::filter(
@@ -110,38 +110,38 @@ build_regime_datasets <- function(qcFull, qcSummary) {
       flag_lag    = lag_flag        == TRUE,
       flag_dur    = is.na(dur_b1) | dur_b1 < 2.0 | dur_b1 > 7.0,
       n_flags     = as.integer(flag_cb) + as.integer(flag_lag) +
-                    as.integer(flag_dur),
+        as.integer(flag_dur),
       regime2_bad = n_flags >= 2
     )
-
+  
   # Sanity check: confirm Condition reconstruction
   cond_check <- qc_paced |>
     dplyr::count(first_condition, run, Condition)
   message("Condition reconstruction check (qc_paced):")
   print(as.data.frame(cond_check))
-
+  
   # ── Four regime datasets ─────────────────────────────────────
   dat_r1  <- qc_paced
   dat_r2  <- dplyr::filter(qc_paced, !regime2_bad)
   dat_r2b <- dplyr::filter(qc_paced, !regime2_bad,
-                            !id %in% regime2b_exclude)
+                           !id %in% regime2b_exclude)
   dat_r3  <- dplyr::filter(qc_paced, !regime2_bad,
-                            !id %in% regime2b_exclude,
-                            !id %in% regime3_exclude)
-
+                           !id %in% regime2b_exclude,
+                           !id %in% regime3_exclude)
+  
   regime_list <- list(R1 = dat_r1, R2 = dat_r2, R2b = dat_r2b, R3 = dat_r3)
-
+  
   message("\nRegime sample sizes (paced trials):")
   for (rname in names(regime_list)) {
     d <- regime_list[[rname]]
     message(sprintf("  %s: %d trials, %d participants",
                     rname, nrow(d), dplyr::n_distinct(d$id)))
   }
-
+  
   # Attach exclusion vectors as attributes for downstream use
   attr(regime_list, "regime2b_exclude") <- regime2b_exclude
   attr(regime_list, "regime3_exclude")  <- regime3_exclude
-
+  
   regime_list
 }
 
@@ -165,7 +165,7 @@ build_regime_datasets <- function(qcFull, qcSummary) {
 #               with Salience and Direction columns present.
 # ============================================================
 add_arousal_keyed <- function(dat, long_paced) {
-
+  
   # Index within id x Salience x Direction cell in long_paced
   long_indexed <- long_paced |>
     dplyr::group_by(id, Salience, Direction) |>
@@ -173,13 +173,13 @@ add_arousal_keyed <- function(dat, long_paced) {
     dplyr::ungroup() |>
     dplyr::select(id, Salience, Direction, trial_in_cell,
                   Arousal, Accuracy, Confidence, Change)
-
+  
   # Same index in the belt regime dataset
   dat_indexed <- dat |>
     dplyr::group_by(id, Salience, Direction) |>
     dplyr::mutate(trial_in_cell = dplyr::row_number()) |>
     dplyr::ungroup()
-
+  
   dat_indexed |>
     dplyr::left_join(long_indexed,
                      by = c("id", "Salience", "Direction", "trial_in_cell"))
@@ -198,28 +198,28 @@ add_arousal_keyed <- function(dat, long_paced) {
 run_H4_regime_loop <- function(regime_arousal,
                                group_var   = NULL,
                                study_label = "Study5") {
-
+  
   stopifnot(all(c("R1", "R2", "R2b", "R3") %in% names(regime_arousal)))
-
+  
   all_estimates <- purrr::map_dfr(
     names(regime_arousal),
     function(rname) {
       dat <- regime_arousal[[rname]] |>
         dplyr::filter(!is.na(Arousal), !is.na(Change)) |>
         dplyr::mutate(Change2 = Change^2)   # pre-compute — Change^2 in formula is wrong
-
+      
       cat(sprintf("\n  Running regime %s: %d trials, %d participants\n",
                   rname, nrow(dat), dplyr::n_distinct(dat$id)))
-
+      
       # Fit H4A and H4B
       mA <- lmerTest::lmer(Arousal ~ Change + Change2 + (1 | id),
-                        data = dat, REML = FALSE)
+                           data = dat, REML = FALSE)
       mB <- lmerTest::lmer(
         Arousal ~ Change * Accuracy + Change2 + (1 | id),
         data = dat |> dplyr::filter(!is.na(Accuracy)),
         REML = FALSE
       )
-
+      
       dplyr::bind_rows(
         broom.mixed::tidy(mA, effects = "fixed", conf.int = TRUE) |>
           dplyr::mutate(hypothesis = "H4A", regime = rname),
@@ -228,11 +228,11 @@ run_H4_regime_loop <- function(regime_arousal,
       )
     }
   )
-
+  
   key_terms <- all_estimates |>
     dplyr::filter(
       (hypothesis == "H4A" & term == "Change") |
-      (hypothesis == "H4B" & term %in% c("Change:Accuracy", "Accuracy:Change"))
+        (hypothesis == "H4B" & term %in% c("Change:Accuracy", "Accuracy:Change"))
     ) |>
     dplyr::mutate(
       regime = factor(regime, levels = c("R1", "R2", "R2b", "R3")),
@@ -246,7 +246,7 @@ run_H4_regime_loop <- function(regime_arousal,
         "Change:Accuracy" = "H4B: Change x Accuracy"
       )
     )
-
+  
   cat(sprintf(
     "\n[%s] Regime comparison — H4B Change×Accuracy across regimes:\n",
     study_label
@@ -259,7 +259,7 @@ run_H4_regime_loop <- function(regime_arousal,
       as.data.frame(),
     digits = 3, row.names = FALSE
   )
-
+  
   list(estimates = all_estimates, key_terms = key_terms)
 }
 
@@ -372,6 +372,13 @@ regime_results <- run_H4_regime_loop(
   study_label    = "Study5"
 )
 
+# Export regime key terms for standalone figure script and reproducibility
+readr::write_csv(
+  regime_results$key_terms,
+  file.path(RESULTS_DIR, "belt_regime_key_terms.csv")
+)
+message("Saved: belt_regime_key_terms.csv")
+
 # ── Extract primary (R1) p-values for BH correction ─────────
 h4a_r1_p <- regime_results$estimates |>
   dplyr::filter(regime == "R1", hypothesis == "H4A", term == "Change") |>
@@ -420,7 +427,7 @@ explore_base <- regime_arousal$R2 |>
 # ── 2a. Simple physio → arousal link ─────────────────────────
 cat("\n--- 2a. Arousal ~ dur_b1_vs_b4 (physio only) ---\n")
 m2a <- lmerTest::lmer(Arousal ~ dur_b1_vs_b4 + (1 | id),
-                   data = explore_base, REML = FALSE)
+                      data = explore_base, REML = FALSE)
 print(broom.mixed::tidy(m2a, effects = "fixed", conf.int = TRUE), n = Inf)
 cat(sprintf("  R²m=%.3f  R²c=%.3f\n",
             MuMIn::r.squaredGLMM(m2a)[1], MuMIn::r.squaredGLMM(m2a)[2]))
@@ -432,9 +439,9 @@ cat(sprintf("  R²m=%.3f  R²c=%.3f\n",
 cat("\n--- 2b. Arousal ~ Change + dur_b1_vs_b4 + Change² ---\n")
 
 m2b_base <- lmerTest::lmer(Arousal ~ Change + Change2 + (1 | id),
-                        data = explore_base, REML = FALSE)
+                           data = explore_base, REML = FALSE)
 m2b_full <- lmerTest::lmer(Arousal ~ Change + Change2 + dur_b1_vs_b4 + (1 | id),
-                        data = explore_base, REML = FALSE)
+                           data = explore_base, REML = FALSE)
 
 lrt_2b <- anova(m2b_base, m2b_full)
 cat("  LRT (does dur_b1_vs_b4 add beyond Change?):\n")
@@ -502,15 +509,15 @@ cat(sprintf("  r(Change, dur_resid) after orthogonalisation: %.4f (expect ~0)\n"
 
 # M1: intended change only
 m_d1 <- lmerTest::lmer(Arousal ~ Change_z + (1 | id),
-                    data = explore_decomp, REML = FALSE)
+                       data = explore_decomp, REML = FALSE)
 
 # M2: + observed compliance (orthogonal to intended change)
 m_d2 <- lmerTest::lmer(Arousal ~ Change_z + dur_resid_z + (1 | id),
-                    data = explore_decomp, REML = FALSE)
+                       data = explore_decomp, REML = FALSE)
 
 # M3: + conscious detection
 m_d3 <- lmerTest::lmer(Arousal ~ Change_z + dur_resid_z + Accuracy + (1 | id),
-                    data = explore_decomp, REML = FALSE)
+                       data = explore_decomp, REML = FALSE)
 
 # M4: + compliance × detection interaction
 # Key test: does detection amplify the physio → arousal link,
@@ -656,7 +663,7 @@ table_belt_compliance <- tibble::tibble(
   wilcox_p            = wt_belt$p.value
 )
 readr::write_csv(table_belt_compliance,
-                 paste0(RESULTS_DIR, "table_belt_compliance.csv"))
+                 file.path(RESULTS_DIR, "table_belt_compliance.csv"))
 message("Saved: table_belt_compliance.csv")
 
 
@@ -847,14 +854,14 @@ table_belt_physio_arousal <- dplyr::bind_rows(
   tibble::tibble(
     condition  = "dur_within x Accuracy (interaction)",
     estimate   = if (!is.na(.int_term_3d))
-                   .tidy_3d$estimate[.tidy_3d$term == .int_term_3d]
-                 else NA_real_,
+      .tidy_3d$estimate[.tidy_3d$term == .int_term_3d]
+    else NA_real_,
     std.error  = if (!is.na(.int_term_3d))
-                   .tidy_3d$std.error[.tidy_3d$term == .int_term_3d]
-                 else NA_real_,
+      .tidy_3d$std.error[.tidy_3d$term == .int_term_3d]
+    else NA_real_,
     p.value    = if (!is.na(.int_term_3d))
-                   .tidy_3d$p.value[.tidy_3d$term == .int_term_3d]
-                 else NA_real_,
+      .tidy_3d$p.value[.tidy_3d$term == .int_term_3d]
+    else NA_real_,
     lrt_chi2   = lrt_3d$Chisq[2],
     lrt_p      = lrt_3d$`Pr(>Chisq)`[2],
     layer      = "3d_physio_x_accuracy_interaction",
@@ -863,7 +870,7 @@ table_belt_physio_arousal <- dplyr::bind_rows(
 )
 
 readr::write_csv(table_belt_physio_arousal,
-                 paste0(RESULTS_DIR, "table_belt_physio_arousal.csv"))
+                 file.path(RESULTS_DIR, "table_belt_physio_arousal.csv"))
 message("Saved: table_belt_physio_arousal.csv")
 
 
@@ -890,8 +897,8 @@ explore_miss_dir <- explore_miss |>
   dplyr::filter(!is.na(direction_correct), !is.na(Arousal)) |>
   dplyr::mutate(
     dir_correct_f = factor(direction_correct,
-                            levels = c(0, 1),
-                            labels = c("Non-compliant", "Compliant"))
+                           levels = c(0, 1),
+                           labels = c("Non-compliant", "Compliant"))
   )
 
 # Descriptive
@@ -943,45 +950,100 @@ dir_miss_results <- tibble::tibble(
     unname(BayesFactor::extractBF(dir_miss_bf)$bf) else NA_real_
 )
 readr::write_csv(dir_miss_results,
-                 paste0(RESULTS_DIR, "belt_direction_compliance_misses.csv"))
+                 file.path(RESULTS_DIR, "belt_direction_compliance_misses.csv"))
 message("Saved: belt_direction_compliance_misses.csv")
 # ============================================================
 cat("\n\n========================================\n")
 cat("FIGURES\n")
 cat("========================================\n")
 
-# ── F1: Regime comparison forest plot ─────────────────────────
+# ── F1: Regime comparison forest plot (restyled) ──────────────
+#
+# Belt QC exclusion regimes:
+#   R1  = all paced trials (primary, no exclusions)
+#   R2  = trial-level QC applied (n_flags < 2)
+#   R2b = R2 + poor-synchrony participants excluded
+#   R3  = R2b + unusable-belt participants excluded
+#
+# Shared x-axis across H4A and H4B panels for direct comparison.
+# Regime colours: dark-to-light gradient (R1 darkest = primary).
 if (nrow(regime_results$key_terms) == 0) {
   message("  [WARNING] key_terms is empty — check that 'Change' and 'Change:Accuracy'",
           " terms were found in regime models. Skipping F1.")
 } else {
+  
+  regime_colours <- c(
+    R1  = "#2d3748",   # darkest  — primary result
+    R2  = "#4a5568",
+    R2b = "#718096",
+    R3  = "#a0aec0"    # lightest — most restrictive
+  )
+  
   f1 <- regime_results$key_terms |>
     dplyr::mutate(
-      regime = factor(regime, levels = c("R3", "R2b", "R2", "R1"))
+      regime = factor(regime, levels = c("R3", "R2b", "R2", "R1")),
+      pt_size = dplyr::if_else(regime == "R1", 4, 3)
     ) |>
-    ggplot(aes(x = estimate, y = regime,
-               xmin = conf.low, xmax = conf.high,
-               colour = regime)) +
-    geom_vline(xintercept = 0, linetype = "dashed",
-               colour = "grey50", linewidth = 0.6) +
-    geom_errorbarh(height = 0.2, linewidth = 0.8) +
-    geom_point(size = 3) +
-    scale_colour_bcat(guide = "none") +
-    facet_wrap(~ term_label, scales = "free_x", nrow = 1) +
-    labs(
-      title    = "H4 stability across exclusion regimes",
-      subtitle = "beta +/- 95% CI  |  R1 = no exclusions (primary); R3 = most restrictive",
-      x = "beta (effect on Arousal)",
+    ggplot2::ggplot(ggplot2::aes(
+      x      = estimate,
+      xmin   = conf.low,
+      xmax   = conf.high,
+      y      = regime,
+      colour = regime
+    )) +
+    ggplot2::geom_vline(
+      xintercept = 0,
+      linetype   = "dashed",
+      colour     = "grey55",
+      linewidth  = 0.5
+    ) +
+    ggplot2::geom_errorbarh(height = 0.22, linewidth = 0.8) +
+    ggplot2::geom_point(
+      ggplot2::aes(size = regime == "R1")
+    ) +
+    ggplot2::scale_colour_manual(
+      values = regime_colours,
+      guide  = "none"
+    ) +
+    ggplot2::scale_size_manual(
+      values = c("TRUE" = 4, "FALSE" = 3),
+      guide  = "none"
+    ) +
+    # Fixed (shared) x-axis: H4A and H4B on identical scale
+    ggplot2::facet_wrap(~ term_label, scales = "fixed", nrow = 1) +
+    ggplot2::labs(
+      title    = "H4 stability across belt QC exclusion regimes",
+      subtitle = paste0(
+        "\u03b2 \u00b1 95% CI  |  ",
+        "R1 = primary (no QC exclusions);  ",
+        "R2 = trial-level QC;  ",
+        "R2b = + poor synchrony excluded;  ",
+        "R3 = + unusable belt excluded"
+      ),
+      x = "\u03b2 (effect on Arousal)",
       y = "Exclusion regime"
     ) +
     theme_bcat(base_size = 12) +
-    theme(plot.title    = element_text(face = "bold"),
-          strip.text    = element_text(face = "bold"),
-          panel.spacing = unit(1.5, "lines"))
-
-  ggsave(paste0(belt_fig_dir, "S5_regime_comparison.pdf"),
-         f1, width = 11, height = 4.5, device = "pdf")
-  message("Saved: S5_regime_comparison.pdf")
+    ggplot2::theme(
+      plot.subtitle      = ggplot2::element_text(size = 8.5, colour = "grey45",
+                                                 lineheight = 1.3),
+      strip.text         = ggplot2::element_text(face = "bold", size = 11),
+      axis.title.y       = ggplot2::element_blank(),
+      axis.text.y        = ggplot2::element_text(size = 10),
+      panel.grid.minor   = ggplot2::element_blank(),
+      panel.grid.major.x = ggplot2::element_line(colour = "grey88",
+                                                 linewidth = 0.3),
+      panel.grid.major.y = ggplot2::element_blank(),
+      panel.spacing      = ggplot2::unit(2, "lines")
+    )
+  
+  save_bcat_fig(file.path(belt_fig_dir, "S5_regime_comparison"),
+                f1, width = 10, height = 3.8)
+  ggplot2::ggsave(
+    file.path(belt_fig_dir, "S5_regime_comparison.png"),
+    f1, width = 10, height = 3.8, dpi = 300
+  )
+  message("Saved: S5_regime_comparison.png")
 }
 
 
@@ -999,12 +1061,12 @@ decomp_r2 <- tibble::tibble(
   )
 
 f2 <- ggplot(decomp_r2, aes(x = component, y = delta_R2m,
-                              fill = component)) +
+                            fill = component)) +
   geom_col(colour = "white", width = 0.65) +
   geom_text(aes(label = sprintf("+%.3f", delta_R2m)),
             vjust = -0.4, size = 3.5) +
   scale_fill_bcat(
-                        guide = "none") +
+    guide = "none") +
   scale_x_discrete(limits = decomp_r2$component) +
   labs(
     title    = "Decomposition: unique R2m contribution per predictor",
@@ -1015,7 +1077,7 @@ f2 <- ggplot(decomp_r2, aes(x = component, y = delta_R2m,
   theme(plot.title = element_text(face = "bold"),
         axis.text.x = element_text(size = 9))
 
-ggsave(paste0(belt_fig_dir, "S5_decomposition_R2.pdf"),
+ggsave(file.path(belt_fig_dir, "S5_decomposition_R2.pdf"),
        f2, width = 8, height = 5, device = "pdf")
 message("Saved: S5_decomposition_R2.pdf")
 
@@ -1036,7 +1098,7 @@ if (nrow(within_comparison) == 0) {
     geom_errorbar(width = 0.15, linewidth = 1.0) +
     geom_point(size = 4) +
     scale_colour_bcat(
-                            guide = "none") +
+      guide = "none") +
     labs(
       title    = "Non-conscious compliance: physio -> arousal within-person",
       subtitle = "beta (dur_within -> Arousal) +/- 95% CI\nSimilar slopes = misattribution without awareness",
@@ -1045,8 +1107,8 @@ if (nrow(within_comparison) == 0) {
     ) +
     theme_bcat(base_size = 12) +
     theme(plot.title = element_text(face = "bold"))
-
-  ggsave(paste0(belt_fig_dir, "S5_nonconscious_within.pdf"),
+  
+  ggsave(file.path(belt_fig_dir, "S5_nonconscious_within.pdf"),
          f3, width = 5.5, height = 5, device = "pdf")
   message("Saved: S5_nonconscious_within.pdf")
 }
@@ -1056,7 +1118,7 @@ if (nrow(within_comparison) == 0) {
 f4 <- dir_summary |>
   dplyr::mutate(
     Accuracy  = factor(Accuracy, levels = c(0, 1),
-                        labels = c("Missed", "Detected")),
+                       labels = c("Missed", "Detected")),
     se        = sqrt(pct_dir_correct * (100 - pct_dir_correct) /
                        n) / 100 * 100
   ) |>
@@ -1070,7 +1132,7 @@ f4 <- dir_summary |>
   annotate("text", x = 1, y = 52, hjust = 0.5, size = 3.5,
            label = sprintf("Binomial p = %.4f", binom_miss$p.value)) +
   scale_fill_bcat(
-                        guide = "none") +
+    guide = "none") +
   scale_y_continuous(limits = c(0, 100),
                      labels = scales::percent_format(scale = 1)) +
   labs(
@@ -1082,7 +1144,7 @@ f4 <- dir_summary |>
   theme_bcat(base_size = 12) +
   theme(plot.title = element_text(face = "bold"))
 
-ggsave(paste0(belt_fig_dir, "S5_direction_compliance.pdf"),
+ggsave(file.path(belt_fig_dir, "S5_direction_compliance.pdf"),
        f4, width = 5, height = 5, device = "pdf")
 message("Saved: S5_direction_compliance.pdf")
 
@@ -1119,7 +1181,7 @@ f5 <- regime_arousal$R1 |>
         strip.text   = element_text(face = "bold"),
         panel.spacing = unit(1, "lines"))
 
-ggsave(paste0(belt_fig_dir, "S5_H4A_arousal_change.pdf"),
+ggsave(file.path(belt_fig_dir, "S5_H4A_arousal_change.pdf"),
        f5, width = 9, height = 7, device = "pdf")
 message("Saved: S5_H4A_arousal_change.pdf")
 
@@ -1207,7 +1269,7 @@ sal_df  <- sal_row[1, "df"]
 # For a simple check: r-scale = 0.707 (default JZS prior)
 bf_sal <- tryCatch(
   BayesFactor::ttest.tstat(t = sal_t, n1 = dplyr::n_distinct(salience_check$id),
-                            nullInterval = NULL, complement = FALSE)$bf,
+                           nullInterval = NULL, complement = FALSE)$bf,
   error = function(e) NULL
 )
 
@@ -1260,7 +1322,7 @@ sal_results <- tibble::tibble(
 )
 
 readr::write_csv(sal_results,
-                 paste0(RESULTS_DIR, "belt_salience_independence.csv"))
+                 file.path(RESULTS_DIR, "belt_salience_independence.csv"))
 message("Saved: belt_salience_independence.csv")
 
 # ============================================================

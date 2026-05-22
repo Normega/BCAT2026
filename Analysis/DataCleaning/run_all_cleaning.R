@@ -29,10 +29,10 @@
 
 base_dir = "I:/Shared drives/Interoception 2025/Paper/"
 #base_dir   <- "." #insert base directory here
-script_dir <- file.path(base_dir, "analysis", "DataCleaning", "/")
+script_dir <- file.path(base_dir, "analysis", "DataCleaning")
 
-data_dir <- file.path(base_dir, "Data", "/")
-raw_dir  <- file.path(base_dir, "RawData", "/")  # not included; see OSF
+data_dir <- file.path(base_dir, "Data")
+raw_dir  <- file.path(base_dir, "RawData")  # not included; see OSF
 dir.create(data_dir, showWarnings = FALSE, recursive = TRUE)
 
 message("========================================")
@@ -51,7 +51,7 @@ scripts <- c(
 for (s in scripts) {
   message("\n--- Running ", s, " ---")
   tryCatch(
-    source(paste0(script_dir, s), echo = FALSE),
+    source(file.path(script_dir, s), echo = FALSE),
     error = function(e) {
       message("ERROR in ", s, ": ", conditionMessage(e))
       message("Continuing with next study...")
@@ -65,12 +65,12 @@ message("Finished: ", format(Sys.time(), "%Y-%m-%d %H:%M:%S"))
 message("========================================")
 
 # Quick output file check
-data_dir <- file.path(base_dir, "data", "")
+data_dir <- file.path(base_dir, "data")
 if (dir.exists(data_dir)) {
   files <- list.files(data_dir, pattern = "study[1-5]_.*\\.csv")
   message("\nFiles written to ", data_dir, ":")
   for (f in sort(files)) {
-    full <- paste0(data_dir, f)
+    full <- file.path(data_dir, f)
     sz   <- file.info(full)$size
     message("  ", f, "  (", format(sz, big.mark = ","), " bytes)")
   }

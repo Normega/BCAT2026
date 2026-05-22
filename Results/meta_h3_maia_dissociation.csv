@@ -1,3 +1,0 @@
-Contrast,k_studies,r_pooled,r_lower,r_upper,p_value,note
-Confidence ~ MAIA (H3A),5,0.26023235457532407,0.19877600749521207,0.3196501187556291,8.697591158253997e-16,All 5 studies included
-Threshold  ~ MAIA (H3B),4,0.07147956830618855,-0.0030686817894965118,0.14523771486407056,0.06018767075819276,"Study 3 excluded (accuracy proxy, not threshold)"

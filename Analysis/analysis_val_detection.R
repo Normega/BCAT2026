@@ -140,5 +140,5 @@ table_detection_change2 <- add_odds_ratios(
   table_detection_change2, terms = c("Change", "Change2"))
 
 readr::write_csv(table_detection_change2,
-                 paste0(RESULTS_DIR, "table_detection_change2.csv"))
+                 file.path(RESULTS_DIR, "table_detection_change2.csv"))
 message("Saved: table_detection_change2.csv")

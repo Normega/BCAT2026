@@ -272,9 +272,9 @@ print(
 )
 
 readr::write_csv(tce_primary,
-                 paste0(RESULTS_DIR, "tce_primary_results.csv"))
+                 file.path(RESULTS_DIR, "tce_primary_results.csv"))
 readr::write_csv(tce_bayes,
-                 paste0(RESULTS_DIR, "barrett_tce_bayes.csv"))
+                 file.path(RESULTS_DIR, "barrett_tce_bayes.csv"))
 message("Saved: tce_primary_results.csv")
 message("Saved: barrett_tce_bayes.csv")
 
@@ -313,7 +313,7 @@ if (nrow(reversals) == 0) {
 }
 
 readr::write_csv(regime_results,
-                 paste0(RESULTS_DIR, "tce_sensitivity_regime.csv"))
+                 file.path(RESULTS_DIR, "tce_sensitivity_regime.csv"))
 message("Saved: tce_sensitivity_regime.csv")
 
 
@@ -379,7 +379,7 @@ matched_results <- purrr::map_dfr(studies, function(s) {
 })
 
 readr::write_csv(matched_results,
-                 paste0(RESULTS_DIR, "tce_sensitivity_matched.csv"))
+                 file.path(RESULTS_DIR, "tce_sensitivity_matched.csv"))
 message("Saved: tce_sensitivity_matched.csv")
 
 
@@ -430,7 +430,7 @@ prior_results |>
   print()
 
 readr::write_csv(prior_results,
-                 paste0(RESULTS_DIR, "tce_sensitivity_prior.csv"))
+                 file.path(RESULTS_DIR, "tce_sensitivity_prior.csv"))
 message("Saved: tce_sensitivity_prior.csv")
 
 
@@ -450,7 +450,7 @@ tce_consolidated <- dplyr::bind_rows(
 )
 
 readr::write_csv(tce_consolidated,
-                 paste0(RESULTS_DIR, "tce_sensitivity_consolidated.csv"))
+                 file.path(RESULTS_DIR, "tce_sensitivity_consolidated.csv"))
 message("Saved: tce_sensitivity_consolidated.csv")
 
 message("\nanalysis_tce.R complete.")

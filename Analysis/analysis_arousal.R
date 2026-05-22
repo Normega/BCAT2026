@@ -273,7 +273,7 @@ table_arousal <- tibble::tibble(
   H4C_partial_r = c(NA_real_, NA_real_, NA_real_, .h4c_s4["partial_r"], .h4c_s5["partial_r"])
 )
 
-readr::write_csv(table_arousal, paste0(RESULTS_DIR, "table_arousal.csv"))
+readr::write_csv(table_arousal, file.path(RESULTS_DIR, "table_arousal.csv"))
 message("Saved: table_arousal.csv")
 
 readr::write_csv(
@@ -283,7 +283,7 @@ readr::write_csv(
     H4C_SE = .extract_h4c_coef(s5_arousal$H4C_exp_final, "Study5_exp")["se"],
     H4C_p  = .extract_h4c_coef(s5_arousal$H4C_exp_final, "Study5_exp")["p"],
     note   = "Visual-first participants only; within-person; exploratory"),
-  paste0(RESULTS_DIR, "table_h4c_exploratory.csv"))
+  file.path(RESULTS_DIR, "table_h4c_exploratory.csv"))
 message("Saved: table_h4c_exploratory.csv")
 
 
@@ -322,6 +322,6 @@ if (!is.null(meta_h4b_noS3)) {
       tau2      = rma_s$tau2,
       Q_stat    = rma_s$QE,
       Q_p       = rma_s$QEp),
-    paste0(RESULTS_DIR, "meta_h4b_sensitivity_noS3.csv"))
+    file.path(RESULTS_DIR, "meta_h4b_sensitivity_noS3.csv"))
   message("Saved: meta_h4b_sensitivity_noS3.csv")
 }

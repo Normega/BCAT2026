@@ -1,4 +1,0 @@
-condition,acme_mean,acme_lower,acme_upper,p_direction,interpretation
-Hits (Accuracy=1),-0.06240149922009861,-0.08495144635519974,-0.04010871152394237,0,P(ACME > 0) on detected trials
-Misses (Accuracy=0),0.0011439451066158758,-0.0032876818435522513,0.005683813955742089,0.7029166666666666,P(ACME > 0) on missed trials
-Difference,-0.06354544432671448,-0.08733972068193176,-0.04039989443050372,0,P(hits ACME > misses ACME) — key awareness-gating test

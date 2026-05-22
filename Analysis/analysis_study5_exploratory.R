@@ -8,7 +8,7 @@
 #          s5e_awareness_change.csv
 # ============================================================
 
-source(paste0(ANALYSIS_DIR, "theme_bcat.R"))
+source(file.path(ANALYSIS_DIR, "theme_bcat.R"))
 
 packages <- c("tidyverse", "lme4", "lmerTest",
               "BayesFactor", "broom.mixed", "MuMIn",
@@ -19,7 +19,7 @@ options(readr.show_col_types = FALSE)
 for (p in packages) library(p, character.only = TRUE, quietly = TRUE)
 
 
-s5e_fig_dir <- paste0(FIG_DIR, "Study5_Exploratory/")
+s5e_fig_dir <- file.path(FIG_DIR, "Study5_Exploratory")
 dir.create(s5e_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 
@@ -191,7 +191,7 @@ e1_all <- dplyr::bind_rows(
     dplyr::mutate(level = "Cells", factor = "Salience×Direction")
 )
 readr::write_csv(e1_all,
-                 paste0(RESULTS_DIR, "s5e_h3b_threshold_breakdown.csv"))
+                 file.path(RESULTS_DIR, "s5e_h3b_threshold_breakdown.csv"))
 message("Saved: s5e_h3b_threshold_breakdown.csv")
 
 
@@ -258,7 +258,7 @@ cat("\nMAIA subscale correlations with threshold and confidence:\n")
 print(as.data.frame(subscale_cors), digits = 3, row.names = FALSE)
 
 readr::write_csv(subscale_cors,
-                 paste0(RESULTS_DIR, "s5e_maia_subscale_cors.csv"))
+                 file.path(RESULTS_DIR, "s5e_maia_subscale_cors.csv"))
 message("Saved: s5e_maia_subscale_cors.csv")
 
 # ── E2b. Alexithymia dissociation ─────────────────────────────
@@ -331,7 +331,7 @@ alex_results <- tibble::tibble(
   n           = nrow(d_alex)
 )
 readr::write_csv(alex_results,
-                 paste0(RESULTS_DIR, "s5e_alexithymia_dissociation.csv"))
+                 file.path(RESULTS_DIR, "s5e_alexithymia_dissociation.csv"))
 message("Saved: s5e_alexithymia_dissociation.csv")
 #
 # H3A tests whether MAIA correlates with overall mean Confidence.
@@ -424,7 +424,7 @@ group_aware_table <- group_awareness |>
   dplyr::summarise(M = mean(Awareness), SD = sd(Awareness),
                    n = dplyr::n(), .groups = "drop")
 readr::write_csv(group_aware_table,
-                 paste0(RESULTS_DIR, "s5e_group_awareness.csv"))
+                 file.path(RESULTS_DIR, "s5e_group_awareness.csv"))
 message("Saved: s5e_group_awareness.csv")
 
 # ── Training contrast: first breath-pacing session ────────────
@@ -507,7 +507,7 @@ e4b_results <- tibble::tibble(
                       first_breath$Group == "visual"], na.rm = TRUE)
 )
 readr::write_csv(e4b_results,
-  paste0(RESULTS_DIR, "s5e_training_contrast.csv")
+  file.path(RESULTS_DIR, "s5e_training_contrast.csv")
 )
 message("Saved: s5e_training_contrast.csv")
 #
@@ -571,7 +571,7 @@ e5_results <- tibble::tibble(
                          d_long_aware$Group == "visual"], na.rm = TRUE)
 )
 readr::write_csv(e5_results,
-  paste0(RESULTS_DIR, "s5e_awareness_change.csv")
+  file.path(RESULTS_DIR, "s5e_awareness_change.csv")
 )
 message("Saved: s5e_awareness_change.csv")
 
@@ -617,7 +617,7 @@ f_e1 <- dplyr::bind_rows(
   theme(plot.title = element_text(face = "bold"),
         legend.position = "bottom")
 
-ggsave(paste0(s5e_fig_dir, "s5e_h3b_breakdown.pdf"),
+ggsave(file.path(s5e_fig_dir, "s5e_h3b_breakdown.pdf"),
        f_e1, width = 8, height = 6, device = "pdf")
 message("Saved: s5e_h3b_breakdown.pdf")
 
@@ -651,7 +651,7 @@ f_e5 <- d_long_aware |>
   theme(plot.title = element_text(face = "bold"),
         legend.position = "bottom")
 
-ggsave(paste0(s5e_fig_dir, "s5e_awareness_change.pdf"),
+ggsave(file.path(s5e_fig_dir, "s5e_awareness_change.pdf"),
        f_e5, width = 7, height = 5, device = "pdf")
 message("Saved: s5e_awareness_change.pdf")
 

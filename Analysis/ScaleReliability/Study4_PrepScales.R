@@ -1,4 +1,4 @@
-winpath = file.path("I:/Shared drives/Interoception 2025/Paper/SourceScales/")
+winpath = file.path("I:/Shared drives/Interoception 2025/Paper/SourceScales")
 s4scales = file.path(winpath, 'Study4SourceScales.csv')
 
 # Set Up---------
@@ -305,7 +305,7 @@ print(
 
 readr::write_csv(
   table_reliability_s4,
-  paste0(resultsPath_s4, "table_scale_reliability_study4.csv")
+  file.path(resultsPath_s4, "table_scale_reliability_study4.csv")
 )
 message(sprintf(
   "Saved: table_scale_reliability_study4.csv (%d rows)",

@@ -1,4 +1,0 @@
-model,acme,method,note
-Analytic: Accuracy=0 (misses),0.0011433724439953964,Analytic from lmer coefficients,CIs from Bayesian M1 model (see study3_mediation_bayesian.csv)
-Analytic: Accuracy=1 (hits),-0.06246858090937638,Analytic from lmer coefficients,CIs from Bayesian M1 model (see study3_mediation_bayesian.csv)
-Difference (hits - misses),-0.06361195335337178,Analytic from lmer coefficients,CIs from Bayesian M1 model (see study3_mediation_bayesian.csv)

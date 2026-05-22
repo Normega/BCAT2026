@@ -44,8 +44,8 @@ for (thispack in packages) {
 # ============================================================
 # 1. Load Raw Data
 # ============================================================
-ma   <- read_excel(paste0(raw_dir, "study3_taskdata.xlsx"))
-quest <- read_excel(paste0(raw_dir, "study3_questionnairedata.xlsx"))
+ma   <- read_excel(file.path(raw_dir, "study3_taskdata.xlsx"))
+quest <- read_excel(file.path(raw_dir, "study3_questionnairedata.xlsx"))
 
 # Fix leading-space column name on fastORslow
 names(ma) <- trimws(names(ma))
@@ -314,9 +314,9 @@ summary_out <- summary_df |>
 # ============================================================
 # 7. Write Outputs
 # ============================================================
-write_csv(long_out,      paste0(data_dir, "study3_long.csv"))
-write_csv(summary_out,   paste0(data_dir, "study3_summary.csv"))
-write_csv(exclusion_log, paste0(data_dir, "study3_exclusions.csv"))
+write_csv(long_out,      file.path(data_dir, "study3_long.csv"))
+write_csv(summary_out,   file.path(data_dir, "study3_summary.csv"))
+write_csv(exclusion_log, file.path(data_dir, "study3_exclusions.csv"))
 
 message("Study 3 cleaning complete.")
 message("  Long:         ", nrow(long_out), " rows")

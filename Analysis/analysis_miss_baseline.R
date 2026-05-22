@@ -201,7 +201,7 @@ print(
 )
 
 readr::write_csv(results,
-                 paste0(RESULTS_DIR, "miss_baseline_bf.csv"))
+                 file.path(RESULTS_DIR, "miss_baseline_bf.csv"))
 message("Saved: miss_baseline_bf.csv")
 
 

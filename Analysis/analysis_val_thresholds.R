@@ -413,31 +413,13 @@ s1_thresh_B <- fit_threshold_models(
   has_salience = FALSE, study_label = "Study1_TaskB")
 
 
-# ── Test-block 3AFC d' (H5; Studies 4 and 5) ─────────────────
-#
-# Quest thresholds calibrated to ~70-75% correct at high salience.
-# Independent fixed-level test trials confirm this.
-
-table_test_dprime <- dplyr::bind_rows(
-  compute_test_dprime_3afc(
-    s4t, study_label = "Study4", group_filter = "Breath",
-    group_col = "Group", acc_col = "Accuracy"),
-  compute_test_dprime_3afc(
-    dplyr::filter(s5t, Condition == "breath"),
-    study_label = "Study5", group_filter = NULL,
-    group_col = NULL, acc_col = "Accuracy"),
-  # Visual group — supplement only
-  compute_test_dprime_3afc(
-    dplyr::filter(s5t, Condition == "visual"),
-    study_label = "Study5_Visual", group_filter = NULL,
-    group_col = NULL, acc_col = "Accuracy")
-)
-readr::write_csv(table_test_dprime,
-                 paste0(RESULTS_DIR, "table_test_dprime.csv"))
-message("Saved: table_test_dprime.csv")
-
-
 # ── Test-block accuracy GLMM (H5; Studies 4 and 5) ───────────
+# NOTE: test_block_accuracy.R now generates the full direction- and
+# session-stratified d' table (test_block_dprime_by_group.csv) used
+# for Table ST5. The pooled d' by salience (table_test_dprime.csv)
+# is no longer needed and has been removed. s4_test / s5_test are
+# kept below because their H5_sal model objects feed table_validation
+# and analysis_maia.R.
 
 s4_test <- fit_test_accuracy(
   dplyr::filter(s4t, !is.na(Salience)),
@@ -509,7 +491,7 @@ cat(sprintf(
 table_reliability <- dplyr::bind_rows(s5_icc_breath, s5_icc_visual) |>
   dplyr::mutate(study = "Study5")
 readr::write_csv(table_reliability,
-                 paste0(RESULTS_DIR, "table_reliability.csv"))
+                 file.path(RESULTS_DIR, "table_reliability.csv"))
 message("Saved: table_reliability.csv")
 
 
@@ -568,5 +550,5 @@ table_validation <- tibble::tibble(
 table_validation <- add_partial_r(table_validation, c("H1", "H2", "H5"))
 
 readr::write_csv(table_validation,
-                 paste0(RESULTS_DIR, "table_validation.csv"))
+                 file.path(RESULTS_DIR, "table_validation.csv"))
 message("Saved: table_validation.csv")

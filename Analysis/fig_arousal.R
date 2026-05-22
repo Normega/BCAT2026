@@ -13,8 +13,8 @@ for (thispack in packages) {
 }
 
 
-DDIR    <- file.path(MAIN_DIR,"Data")
-FIG_DIR <- file.path(MAIN_DIR,"Figures")
+DDIR    <- file.path(BASE_DIR,"Data")
+FIG_DIR <- file.path(BASE_DIR,"Figures")
 
 ctrl <- lmerControl(optimizer = "bobyqa")
 
@@ -212,4 +212,4 @@ ggsave(file.path(FIG_DIR, "fig_arousal.pdf"),
 ggsave(file.path(FIG_DIR, "fig_arousal.png"),
        plot = p_combined, width = 10, height = 7, dpi = 300)
 
-cat("Figure saved to", fig_path, "\n")
+cat("Figure saved to", FIG_DIR, "\n")

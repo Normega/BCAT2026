@@ -1,0 +1,14 @@
+# Output files — stored on OSF, not in git
+Results/
+Figures/
+Tables/
+
+# R session artifacts
+.Rhistory
+.RData
+.Rproj.user/
+*.Rproj
+
+# OS artifacts
+.DS_Store
+Thumbs.db

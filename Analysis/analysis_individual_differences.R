@@ -18,7 +18,7 @@
 # ============================================================
 
 
-source(paste0(ANALYSIS_DIR, "theme_bcat.R"))
+source(file.path(ANALYSIS_DIR, "theme_bcat.R"))
 
 # ── Helper: per-person OLS slope ──────────────────────────────
 
@@ -311,8 +311,8 @@ feat_s3 <- .extract_task_features(s3l, s3s, "Study3")
 for (feat_df in list(feat_s4, feat_s5, feat_s1, feat_s2, feat_s3)) {
   study_lbl <- feat_df$study[1]
   readr::write_csv(feat_df,
-    paste0(RESULTS_DIR, "id_features_",
-           tolower(study_lbl), ".csv"))
+    file.path(RESULTS_DIR, paste0("id_features_",
+           tolower(study_lbl), ".csv")))
   message(sprintf("Saved: id_features_%s.csv (%d participants, %d features)",
                   tolower(study_lbl), nrow(feat_df), ncol(feat_df)))
 }
@@ -366,8 +366,8 @@ message("\n--- Correlation matrices ---")
 corr_s4 <- .corr_matrix(feat_s4, task_feature_cols, qs_cols_s4, "Study4")
 corr_s5 <- .corr_matrix(feat_s5, task_feature_cols, qs_cols_s5, "Study5")
 
-readr::write_csv(corr_s4, paste0(RESULTS_DIR, "id_correlations_study4.csv"))
-readr::write_csv(corr_s5, paste0(RESULTS_DIR, "id_correlations_study5.csv"))
+readr::write_csv(corr_s4, file.path(RESULTS_DIR, "id_correlations_study4.csv"))
+readr::write_csv(corr_s5, file.path(RESULTS_DIR, "id_correlations_study5.csv"))
 message("Saved: id_correlations_study4.csv")
 message("Saved: id_correlations_study5.csv")
 
@@ -416,7 +416,7 @@ replication <- corr_s4_shared |>
   dplyr::arrange(p_s4)
 
 readr::write_csv(replication,
-                 paste0(RESULTS_DIR, "id_replication_study4_5.csv"))
+                 file.path(RESULTS_DIR, "id_replication_study4_5.csv"))
 message("Saved: id_replication_study4_5.csv")
 
 # Summary

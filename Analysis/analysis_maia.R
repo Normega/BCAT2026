@@ -29,7 +29,7 @@
 #   study5_bh_correction.csv
 # ============================================================
 
-source(paste0(ANALYSIS_DIR, "theme_bcat.R"))
+source(file.path(ANALYSIS_DIR, "theme_bcat.R"))
 message("\n========================================")
 message("MAIA: SENSIBILITY VS. SENSITIVITY (H3A, H3B)")
 message("========================================")
@@ -168,7 +168,7 @@ table_maia <- tibble::tibble(
   H3B_BF01     = c(.bf01(s1_maia_A), .bf01(s2_maia), .bf01(s3_maia),
                    .bf01(s4_maia),   .bf01(s5_maia))
 )
-readr::write_csv(table_maia, paste0(RESULTS_DIR, "table_maia.csv"))
+readr::write_csv(table_maia, file.path(RESULTS_DIR, "table_maia.csv"))
 message("Saved: table_maia.csv")
 
 
@@ -202,7 +202,156 @@ s5_maia_mod <- fit_maia_moderation(
   study_label = "Study5")
 
 
-# ── Threshold descriptives (Studies 4 and 5) ──────────────────
+# ============================================================
+# fit_maia_gating_moderation()
+#
+# Exploratory: does MAIA moderate the awareness-gating effect?
+# Tests the three-way Change × Accuracy × MAIA_z interaction.
+#
+# Two theoretically distinct questions:
+#   (a) Accuracy × MAIA_z: do high-MAIA individuals show larger
+#       hit/miss differences in baseline arousal (intercept gating)?
+#   (b) Change × Accuracy × MAIA_z: do high-MAIA individuals show
+#       stronger magnitude-scaling on detected vs missed trials?
+#
+# LRT chain:
+#   m_gate    : Arousal ~ Change * Accuracy + Change2 (standard gating)
+#   m_gate_m  : + MAIA_total_z                       (MAIA as covariate)
+#   m_gate_ax : + Accuracy * MAIA_total_z            (gating × MAIA)
+#   m_gate_3w : + Change * Accuracy * MAIA_total_z   (full three-way)
+#
+# `data`: trial-level; columns id, Arousal, Change, Accuracy, MAIA_total_z.
+# ============================================================
+fit_maia_gating_moderation <- function(data, study_label = "") {
+
+  data <- data |>
+    dplyr::filter(
+      !is.na(Arousal), !is.na(Change),
+      !is.na(Accuracy), !is.na(MAIA_total_z)
+    ) |>
+    dplyr::mutate(
+      Change2  = Change^2,
+      Accuracy = as.numeric(Accuracy)   # 0/1 numeric for interaction
+    )
+
+  n_ppt <- dplyr::n_distinct(data$id)
+  cat(sprintf(
+    "\n[%s] MAIA gating moderation: N=%d participants, %d trials\n",
+    study_label, n_ppt, nrow(data)
+  ))
+
+  if (n_ppt < 10) {
+    message(sprintf("  [%s] Too few participants — skipping", study_label))
+    return(NULL)
+  }
+
+  ctrl <- lme4::lmerControl(optimizer = "bobyqa", optCtrl = list(maxfun = 2e5))
+
+  m_gate <- lmerTest::lmer(
+    Arousal ~ Change * Accuracy + Change2 + (1 | id),
+    data = data, REML = FALSE, control = ctrl)
+
+  m_gate_m <- lmerTest::lmer(
+    Arousal ~ Change * Accuracy + MAIA_total_z + Change2 + (1 | id),
+    data = data, REML = FALSE, control = ctrl)
+
+  m_gate_ax <- lmerTest::lmer(
+    Arousal ~ Change * Accuracy + Accuracy * MAIA_total_z + Change2 + (1 | id),
+    data = data, REML = FALSE, control = ctrl)
+
+  m_gate_3w <- lmerTest::lmer(
+    Arousal ~ Change * Accuracy * MAIA_total_z + Change2 + (1 | id),
+    data = data, REML = FALSE, control = ctrl)
+
+  lrt <- anova(m_gate, m_gate_m, m_gate_ax, m_gate_3w)
+
+  cf <- summary(m_gate_3w)$coefficients
+
+  # Helper: extract named row safely using fixed string matching
+  # lmerTest names interaction terms with colons: "A:B", "A:B:C"
+  .get <- function(term_name) {
+    row <- rownames(cf)[rownames(cf) == term_name]
+    if (length(row) == 0) {
+      # fallback: partial match without regex
+      row <- rownames(cf)[startsWith(rownames(cf), term_name)]
+    }
+    if (length(row) == 0) return(c(b = NA_real_, se = NA_real_,
+                                   t = NA_real_,  p = NA_real_))
+    x <- cf[row[1], c("Estimate", "Std. Error", "t value", "Pr(>|t|)")]
+    c(b = x[1], se = x[2], t = x[3], p = x[4])
+  }
+
+  acc_maia        <- .get("Accuracy:MAIA_total_z")
+  change_acc_maia <- .get("Change:Accuracy:MAIA_total_z")
+
+  cat(sprintf(
+    "  Accuracy × MAIA_z: b=%.3f (SE=%.3f), t=%.2f, p=%.4f\n",
+    acc_maia["b"], acc_maia["se"], acc_maia["t"], acc_maia["p"]
+  ))
+  cat(sprintf(
+    "  Change × Accuracy × MAIA_z: b=%.3f (SE=%.3f), t=%.2f, p=%.4f\n",
+    change_acc_maia["b"], change_acc_maia["se"],
+    change_acc_maia["t"], change_acc_maia["p"]
+  ))
+  cat("  LRT (gating → +MAIA → +Acc×MAIA → +3-way):\n")
+  print(lrt)
+
+  list(
+    m_gate    = m_gate,
+    m_gate_m  = m_gate_m,
+    m_gate_ax = m_gate_ax,
+    m_gate_3w = m_gate_3w,
+    lrt       = lrt,
+    study     = study_label
+  )
+}
+
+# ── Run for Studies 4 and 5 (have trial-level Accuracy + MAIA) ─
+# Study 3 excluded: uses mean accuracy as proxy, not trial-level.
+
+s4_maia_gating <- fit_maia_gating_moderation(
+  s4l |> dplyr::left_join(
+    s4s |> dplyr::select(id, MAIA_total_z), by = "id"),
+  study_label = "Study4")
+
+s5_maia_gating <- fit_maia_gating_moderation(
+  s5_long_breath |> dplyr::left_join(
+    s5s |> dplyr::select(id, MAIA_total_z), by = "id"),
+  study_label = "Study5")
+
+# ── Save key terms to CSV ─────────────────────────────────────
+.extract_gating_terms <- function(obj) {
+  if (is.null(obj)) return(NULL)
+  cf  <- summary(obj$m_gate_3w)$coefficients
+  lrt <- obj$lrt
+
+  tibble::tibble(
+    study = obj$study,
+    term  = rownames(cf),
+    b     = cf[, "Estimate"],
+    se    = cf[, "Std. Error"],
+    t     = cf[, "t value"],
+    df    = if ("df" %in% colnames(cf)) cf[, "df"] else NA_real_,
+    p     = cf[, "Pr(>|t|)"],
+    partial_r = t / sqrt(t^2 + df)
+  ) |>
+    dplyr::mutate(
+      lrt_acc_maia_p  = lrt[["Pr(>Chisq)"]][3],   # +Acc×MAIA step
+      lrt_threeway_p  = lrt[["Pr(>Chisq)"]][4],   # +Change×Acc×MAIA step
+      dplyr::across(where(is.numeric), \(x) round(x, 4))
+    )
+}
+
+table_maia_gating <- dplyr::bind_rows(
+  .extract_gating_terms(s4_maia_gating),
+  .extract_gating_terms(s5_maia_gating)
+)
+
+readr::write_csv(
+  table_maia_gating,
+  file.path(RESULTS_DIR, "table_maia_gating_moderation.csv")
+)
+message("Saved: table_maia_gating_moderation.csv")
 
 table_threshold_descriptives <- dplyr::bind_rows(
   s4_thresh_long |>
@@ -223,7 +372,7 @@ table_threshold_descriptives <- dplyr::bind_rows(
     dplyr::mutate(study = "Study5")
 ) |> dplyr::select(study, dplyr::everything())
 readr::write_csv(table_threshold_descriptives,
-                 paste0(RESULTS_DIR, "table_threshold_descriptives.csv"))
+                 file.path(RESULTS_DIR, "table_threshold_descriptives.csv"))
 message("Saved: table_threshold_descriptives.csv")
 
 
@@ -248,7 +397,7 @@ readr::write_csv(
   dplyr::bind_rows(
     s4_bh$family1 |> dplyr::mutate(family = "main_effects"),
     s4_bh$family2 |> dplyr::mutate(family = "interactions")),
-  paste0(RESULTS_DIR, "study4_bh_correction.csv"))
+  file.path(RESULTS_DIR, "study4_bh_correction.csv"))
 message("Saved: study4_bh_correction.csv")
 
 s5_pvals <- c(
@@ -264,7 +413,7 @@ readr::write_csv(
   dplyr::bind_rows(
     s5_bh$family1 |> dplyr::mutate(family = "main_effects"),
     s5_bh$family2 |> dplyr::mutate(family = "interactions")),
-  paste0(RESULTS_DIR, "study5_bh_correction.csv"))
+  file.path(RESULTS_DIR, "study5_bh_correction.csv"))
 message("Saved: study5_bh_correction.csv")
 
 

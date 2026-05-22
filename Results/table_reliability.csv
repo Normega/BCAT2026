@@ -1,9 +1,0 @@
-condition,group,n,icc,icc_lower,icc_upper,study
-High_Faster,Breath-first (breath-breath),65,0.2972634343488042,0.06319639949997115,0.5014812640015456,Study5
-High_Slower,Breath-first (breath-breath),67,0.3473013906733074,0.11740316712998788,0.5415761539580487,Study5
-Low_Faster,Breath-first (breath-breath),66,0.2359848594420994,-0.0017171003499096777,0.4493751212096361,Study5
-Low_Slower,Breath-first (breath-breath),67,0.5890665023407904,0.40847698395831544,0.725442335067644,Study5
-High_Faster,"Visual-first (visual-breath, cross-condition)",89,-0.008796105827636826,-0.20881481988821174,0.19424002524737963,Study5
-High_Slower,"Visual-first (visual-breath, cross-condition)",89,0.31185967437312856,0.1137774192639566,0.4866092488617453,Study5
-Low_Faster,"Visual-first (visual-breath, cross-condition)",89,0.07584351482290333,-0.13340450924372463,0.27865005302668133,Study5
-Low_Slower,"Visual-first (visual-breath, cross-condition)",90,0.38654259980600797,0.19628491785999658,0.5488069141109093,Study5

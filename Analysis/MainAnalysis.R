@@ -7,27 +7,110 @@
 # from this environment — no paths are set anywhere else.
 #
 # Run order:
-#   1. study{N}_clean.R scripts (data preparation)
-#   2. Intero2025_PrepQualtrics.R (Study 5 questionnaires)
-#   3. This script (sources all analysis files in order)
+#   1. DataCleaning/study{N}_clean.R       (data preparation, run via run_all_cleaning.R)
+#   2. Study5/Intero2025_PrepQualtrics.R   (Study 5 questionnaires)
+#   3. This script                         (sources all analysis files in order)
+#
+# UTILITIES (sourced first, no output):
+#   utils.R                               — helper functions and load_all_data()
+#   theme_bcat.R                          — shared ggplot theme and save_bcat_fig()
+#   meta_analysis.R                       — meta-analytic functions (run_h4b_meta() etc.)
 #
 # PRIMARY RESULTS (main text order):
-#   analysis_val_detection.R              — Task Validation: Change² (Table 2)
-#   analysis_val_pilot_studies.R          — Supplement S1.1 / S1.2 / S1.3
-#   analysis_val_thresholds.R             — Supplement S1.4 (H1, H2, H5, H6)
-#   analysis_arousal.R                    — Awareness Gates Arousal Transfer
-#   analysis_miss_baseline.R              — Bayesian null: misses vs. baseline
+#   analysis_val_detection.R              — Task Validation: Change² detection models
+#                                           Creates: table_detection_change2.csv
+#   analysis_val_pilot_studies.R          — Supplement S1.1–S1.4: pilot comparison,
+#                                           staircase convergence, salience orthogonality
+#                                           Creates: study1_task_comparison.csv,
+#                                                    table_study3_salience_accuracy.csv,
+#                                                    table_staircase_convergence.csv,
+#                                                    study2_convergence_elbow.csv,
+#                                                    study2_convergence_elbow_summary.csv
+#   analysis_val_thresholds.R             — Supplement S1.5: thresholds, d', ICC (H1, H2, H5, H6)
+#                                           Creates: table_validation.csv,
+#                                                    table_test_dprime.csv,
+#                                                    table_reliability.csv,
+#                                                    table_threshold_descriptives.csv
+#   analysis_arousal.R                    — Awareness Gates Arousal Transfer (H4A, H4B, H4C)
+#                                           Creates: table_arousal.csv,
+#                                                    table_h4c_exploratory.csv,
+#                                                    meta_h4b_sensitivity_noS3.csv
+#   analysis_miss_baseline.R              — Supplement S2.1: Bayesian null, misses vs. baseline
+#                                           Creates: miss_baseline_bf.csv
+#   test_block_arousal.R                  — Supplement S2.2: test block mediation
+#                                           Creates: test_block_all_models.csv,
+#                                                    frequentist_mediation_by_group.csv,
+#                                                    brms_indirect_by_group.csv,
+#                                                    brms_arousal_indirect_draws.csv,
+#                                                    freq_vs_brms_key_terms.csv
 #   analysis_study3_attraction_mediation.R — Study 3 misattribution chain
-#   analysis_maia.R                       — MAIA: sensibility vs. sensitivity
+#                                           Creates: study3_mediation_primary.csv,
+#                                                    study3_mediation_m1a_subset.csv,
+#                                                    study3_mediation_m1b_analytic.csv,
+#                                                    study3_mediation_bayesian_m0.csv,
+#                                                    study3_mediation_bayesian_m1.csv,
+#                                                    study3_maia_moderation_path_a.csv,
+#                                                    study3_maia_protection_acme.csv,
+#                                                    study3_maia_bayesian_moderation.csv
+#   analysis_maia.R                       — MAIA: sensibility vs. sensitivity (H3A, H3B)
+#                                           Creates: table_maia.csv,
+#                                                    table_threshold_descriptives.csv,
+#                                                    study4_bh_correction.csv,
+#                                                    study5_bh_correction.csv
 #
 # SUPPLEMENTARY (supplement order):
-#   analysis_tce.R                        — S2: TCE sensitivity analyses
-#   analysis_individual_differences.R     — S3: individual differences
-#   analysis_belt.R                       — S6: belt entrainment + physio
-#   belt_salience_followup.R              — S6: belt salience follow-up
-#   analysis_s6_entrainment.R             — S6: belt-pacer entrainment -> detection
-#   analysis_study5_exploratory.R         — exploratory Study 5
-#   analysis_hbd.R                        — HBD cardiac exploratory
+#   analysis_tce.R                        — S3: TCE sensitivity analyses (regime, matched, prior)
+#                                           Creates: tce_primary_results.csv,
+#                                                    barrett_tce_bayes.csv,
+#                                                    tce_sensitivity_regime.csv,
+#                                                    tce_sensitivity_matched.csv,
+#                                                    tce_sensitivity_prior.csv,
+#                                                    tce_sensitivity_consolidated.csv
+#   analysis_belt.R                       — S4: belt physio and compliance
+#                                           Creates: table_belt_compliance.csv,
+#                                                    table_belt_physio_arousal.csv,
+#                                                    belt_direction_compliance_misses.csv,
+#                                                    belt_regime_key_terms.csv,
+#                                                    belt_salience_independence.csv
+#   belt_salience_followup.R              — S4: belt salience follow-up (exploratory)
+#                                           Creates: table_belt_salience_followup.csv
+#   analysis_s4_entrainment.R             — S4: belt-pacer entrainment -> detection advantage
+#                                           Creates: s4_entrainment_results.csv
+#   analysis_individual_differences.R     — S5: individual differences (Studies 4 and 5)
+#                                           Creates: id_features_{study}.csv,
+#                                                    id_correlations_study4.csv,
+#                                                    id_correlations_study5.csv,
+#                                                    id_replication_study4_5.csv
+#   analysis_study5_exploratory.R         — S5: exploratory Study 5 MAIA and threshold breakdown
+#                                           Creates: s5e_h3b_threshold_breakdown.csv,
+#                                                    s5e_maia_subscale_cors.csv,
+#                                                    s5e_alexithymia_dissociation.csv,
+#                                                    s5e_group_awareness.csv,
+#                                                    s5e_training_contrast.csv,
+#                                                    s5e_awareness_change.csv
+#   analysis_s7_maia_selfesteem.R         — S7: MAIA-confidence controlling for self-esteem
+#                                           Creates: s7_partial_correlations.csv,
+#                                                    s7_threshold_partial_correlations.csv,
+#                                                    s7_multilevel_confidence_results.csv,
+#                                                    s7_multilevel_threshold_results.csv
+#   analysis_hbd.R                        — S6: heartbeat detection, cross-modal dissociation
+#                                           Creates: hbd_missingness.csv,
+#                                                    hbd3_crossmodal.csv,
+#                                                    hbd5_sensitivity.csv,
+#                                                    hbd_summary.csv
+#
+# STANDALONE (not sourced here — run separately):
+#   Build_Main_Tables.R                   — assembles BCAT_Main_Tables.docx from CSVs
+#   Build_Supplementary_Tables.R          — assembles BCAT_Supplementary_Tables.docx
+#   Build_Reliability_Tables.R            — assembles Scale_Reliability_Tables.docx
+#   fig_accuracy.R                        — Figure 1 (psychometric functions)
+#   fig_arousal.R                         — Figure 2 (arousal gating)
+#   fig_arousal_salience.R                — Arousal x salience figure
+#   fig_staircase.R                       — Figure S1 (staircase convergence)
+#   figure_regime_comparison.R            — Figure S3 (regime sensitivity)
+#   ScaleReliability/Study{N}_PrepScales.R — scale scoring per study
+#   DataCleaning/run_all_cleaning.R       — runs all study{N}_clean.R scripts
+#   Study5/                               — full physio pipeline (see Study5/study5_processing_README.md)
 #
 # Shared objects available to all sourced files:
 #   Data:    s1l, s1s, s2l, s2s, s3l, s3s, s4l, s4s, s4t,
@@ -63,12 +146,12 @@ for (thispack in packages) {
 # ============================================================
 # Paths — set once here; all sourced files use these objects
 # ============================================================
-BASE_DIR     <- "I:/Shared drives/Interoception 2025/Repo/"
-DATA_DIR     <- paste0(BASE_DIR, "Data/")
-ANALYSIS_DIR <- paste0(BASE_DIR, "Analysis/")
-RESULTS_DIR  <- paste0(BASE_DIR, "Results/")
-FIG_DIR      <- paste0(RESULTS_DIR, "Figures/")
-MODEL_DIR    <- paste0(RESULTS_DIR, "Models/")
+BASE_DIR     <- "." # <-- insert your base path here!!!
+DATA_DIR     <- file.path(BASE_DIR, "Data")
+ANALYSIS_DIR <- file.path(BASE_DIR, "Analysis")
+RESULTS_DIR  <- file.path(BASE_DIR, "Results")
+FIG_DIR      <- file.path(RESULTS_DIR, "Figures")
+MODEL_DIR    <- file.path(RESULTS_DIR, "Models")
 
 for (.d in c(RESULTS_DIR, FIG_DIR, MODEL_DIR)) {
   dir.create(.d, showWarnings = FALSE, recursive = TRUE)
@@ -79,9 +162,9 @@ rm(.d)
 # utils.R:        data loading, effect size helpers, reshape helpers
 # theme_bcat.R:   shared ggplot theme
 # meta_analysis.R: meta-analytic pooling helpers
-source(paste0(ANALYSIS_DIR, "utils.R"))
-source(paste0(ANALYSIS_DIR, "theme_bcat.R"))
-source(paste0(ANALYSIS_DIR, "meta_analysis.R"))
+source(file.path(ANALYSIS_DIR, "utils.R"))
+source(file.path(ANALYSIS_DIR, "theme_bcat.R"))
+source(file.path(ANALYSIS_DIR, "meta_analysis.R"))
 
 
 # ── Data loading and standardisation ──────────────────────────
@@ -151,66 +234,80 @@ message("Data ready.")
 # Task Validation: Change² dose-response across all studies (main text Table 2)
 # Creates: table_detection_change2.csv
 # Creates env objects: s{N}_det — used by analysis_val_thresholds.R
-source(paste0(ANALYSIS_DIR, "analysis_val_detection.R"))
+source(file.path(ANALYSIS_DIR, "analysis_val_detection.R"))
 
-# Task Validation: pilot study comparisons and staircase convergence (Supplement S1.1–S1.3)
+# Task Validation: pilot study comparisons and staircase convergence (Supplement S1.1–S1.4)
 # Creates: study1_task_comparison.csv, table_study3_salience_accuracy.csv,
 #          table_staircase_convergence.csv, study2_convergence_elbow.csv
-source(paste0(ANALYSIS_DIR, "analysis_val_pilot_studies.R"))
+source(file.path(ANALYSIS_DIR, "analysis_val_pilot_studies.R"))
 
 # Task Validation: thresholds, d', ICC (Supplement S1.4)
 # NOTE: requires analysis_val_detection.R to have run first
 #       (uses s{N}_det objects for table_validation.csv assembly)
 # Creates: table_validation.csv, table_test_dprime.csv, table_reliability.csv
 # Creates env objects: s{N}_thresh, s{N}_conf, s{N}_maia — used by analysis_maia.R
-source(paste0(ANALYSIS_DIR, "analysis_val_thresholds.R"))
+source(file.path(ANALYSIS_DIR, "analysis_val_thresholds.R"))
+
+# Test block detection accuracy: salience, direction, group, session
+# Generates table_test_dprime by group/direction (replaces table_test_dprime.csv)
+# Creates: test_block_accuracy_descriptives.csv, test_block_dprime_by_group.csv,
+#          test_block_dprime_summary.csv, test_block_accuracy_glmm.csv,
+#          test_block_dprime_lmm.csv, test_block_study4_accuracy.csv,
+#          test_block_study5_accuracy.csv, test_block_direction_asymmetry.csv
+source(file.path(ANALYSIS_DIR, "test_block_accuracy.R"))
 
 # Awareness Gates Arousal Transfer (H4A, H4B, H4C)
 # Creates: table_arousal.csv, barrett_tce_disambiguation.csv,
 #          meta_h4b_pooled.csv, table_belt_physio_arousal.csv
 # Creates env objects: s{N}_arousal — used by analysis_maia.R
-source(paste0(ANALYSIS_DIR, "analysis_arousal.R"))
+source(file.path(ANALYSIS_DIR, "analysis_arousal.R"))
 
 # Bayesian null test: missed-change trials vs. no-change baseline
 # BF01 values reported in main text (Studies 1A, 2, 4, 5)
 # Creates: miss_baseline_bf.csv
-source(paste0(ANALYSIS_DIR, "analysis_miss_baseline.R"))
+source(file.path(ANALYSIS_DIR, "analysis_miss_baseline.R"))
+source(file.path("test_block_arousal.R"))
 
 # Study 3 misattribution chain: Change -> Arousal -> Attraction
 # Creates: table_mediation.csv
-source(paste0(ANALYSIS_DIR, "analysis_study3_attraction_mediation.R"))
+source(file.path(ANALYSIS_DIR, "analysis_study3_attraction_mediation.R"))
 
 # MAIA: sensibility vs. sensitivity (H3A, H3B)
 # NOTE: requires analysis_val_thresholds.R to have run first
 #       (uses s{N}_maia, s{N}_thresh, s{N}_conf objects)
 # Creates: table_maia.csv
-source(paste0(ANALYSIS_DIR, "analysis_maia.R"))
+source(file.path(ANALYSIS_DIR, "analysis_maia.R"))
 
 
 # ── SUPPLEMENTARY ─────────────────────────────────────────────
 
-# S2: TCE sensitivity analyses
-source(paste0(ANALYSIS_DIR, "analysis_tce.R"))
+# S3: TCE sensitivity analyses
+source(file.path(ANALYSIS_DIR, "analysis_tce.R"))
 
-# S3: Individual differences (Studies 4 and 5 replication)
-source(paste0(ANALYSIS_DIR, "analysis_individual_differences.R"))
+# S4: Belt entrainment and interoceptive contribution to detection
+source(file.path(ANALYSIS_DIR, "analysis_belt.R"))
+source(file.path(ANALYSIS_DIR, "belt_salience_followup.R"))
+source(file.path(ANALYSIS_DIR, "analysis_s4_entrainment.R"))
 
-# S6: Belt entrainment and interoceptive contribution to detection
-source(paste0(ANALYSIS_DIR, "analysis_belt.R"))
-source(paste0(ANALYSIS_DIR, "belt_salience_followup.R"))
-source(paste0(ANALYSIS_DIR, "analysis_s6_entrainment.R"))
+# S5: Individual differences (Studies 4 and 5 replication)
+source(file.path(ANALYSIS_DIR, "analysis_individual_differences.R"))
 
 # Exploratory Study 5 MAIA and threshold breakdown
-source(paste0(ANALYSIS_DIR, "analysis_study5_exploratory.R"))
+source(file.path(ANALYSIS_DIR, "analysis_study5_exploratory.R"))
 
-# Controls for Global Self Esteem on MAIA in Study 5
-source(paste0(ANALYSIS_DIR, "analysis_s8_maia_selfesteem.R")) 
+# S7: Controls for Global Self Esteem on MAIA in Study 5
+source(file.path(ANALYSIS_DIR, "analysis_s7_maia_selfesteem.R")) 
 
 # HBD cardiac interoception (exploratory)
-source(paste0(ANALYSIS_DIR, "analysis_hbd.R"))
+source(file.path(ANALYSIS_DIR, "analysis_hbd.R"))
 
-# Arousal Confidence Coupling Exploration
-source(paste0(ANALYSIS_DIR, "analysis_s9_conf_arousal_coupling.R"))
+# Figures
+source(file.path(ANALYSIS_DIR, "fig_staircase.R"))
+source(file.path(ANALYSIS_DIR, "fig_accuracy.R"))
+source(file.path(ANALYSIS_DIR, "fig_arousal.R"))
+source(file.path(ANALYSIS_DIR, "fig_regime_comparison.R"))
+
+
 
 # ── Zip all results ───────────────────────────────────────────
 result_files <- list.files(RESULTS_DIR, pattern = "\\.csv$", full.names = TRUE)

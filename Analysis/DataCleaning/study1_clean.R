@@ -26,7 +26,7 @@ for (thispack in packages) {
 # ============================================================
 # 1. Load Raw Data
 # ============================================================
-raw <- read_excel(paste0(raw_dir, "study1_data.xls"),
+raw <- read_excel(file.path(raw_dir, "study1_data.xls"),
                   col_types = "text")   # read all as text, coerce below
 
 # Fix leading-space column name on fastORslow
@@ -296,9 +296,9 @@ summary_out <- summary_df |>
 # ============================================================
 # 6. Write Outputs
 # ============================================================
-write_csv(long_out,      paste0(data_dir, "study1_long.csv"))
-write_csv(summary_out,   paste0(data_dir, "study1_summary.csv"))
-write_csv(exclusion_log, paste0(data_dir, "study1_exclusions.csv"))
+write_csv(long_out,      file.path(data_dir, "study1_long.csv"))
+write_csv(summary_out,   file.path(data_dir, "study1_summary.csv"))
+write_csv(exclusion_log, file.path(data_dir, "study1_exclusions.csv"))
 
 message("Study 1 cleaning complete.")
 message("  Long:       ", nrow(long_out),     " rows")

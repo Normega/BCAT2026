@@ -4,7 +4,11 @@
 #
 # Prediction: low-salience trials (tested at high-salience threshold) produce
 # lower detection rates, and thereby lower arousal and confidence.
-# Key test: whether salience effect on arousal/confidence is mediated by detection.
+# Key tests:
+#   (1) Marginal salience effect on arousal and confidence
+#   (2) Salience effect after conditioning on hit/miss
+#   (3) Mediation: salience -> detection -> arousal (frequentist + brms)
+#   (4) Group interactions: does salience x accuracy pattern differ by Breath vs Visual?
 
 # Set Up ---------
 ## Load libraries ---------
@@ -12,11 +16,11 @@ packages <- c(
   "tidyverse",
   "lme4",
   "lmerTest",
+  "car",
   "ggeffects",
-  "patchwork",
-  "mediation",
   "BayesFactor",
   "brms",
+  "posterior",
   "tidybayes",
   "broom.mixed"
 )
@@ -28,89 +32,96 @@ for (thispack in packages) {
 }
 
 # Paths ---------
-DATA_DIR    <- file.path(MAIN_DIR, "Data")
-RESULTS_DIR <- file.path(MAIN_DIR, "Results")
+DATA_DIR    <- file.path(BASE_DIR, "Data")
+RESULTS_DIR <- file.path(BASE_DIR, "Results")
+RDS_DIR <- file.path(RESULTS_DIR, "Models", "TestRDS")
+FIGURES_DIR <- file.path(BASE_DIR, "Figures")
 dir.create(RESULTS_DIR, showWarnings = FALSE, recursive = TRUE)
 
 # ============================================================
-# 1. LOAD DATA
+# 1. LOAD AND HARMONIZE DATA
 # ============================================================
-# Expects trial-level data files for Studies 4 and 5.
-# Required columns (adapt names to match your actual files):
-#   id          : participant identifier
-#   study       : "S4" or "S5"
-#   block_type  : "staircase" | "test"  (filter to "test" below)
-#   salience    : "high" | "low"
-#   accuracy    : 1 = correct 3AFC, 0 = incorrect (hit/miss proxy)
-#   arousal     : trial-level arousal rating (z-scored within participant)
-#   confidence  : trial-level confidence rating
-#   change      : signed breathing rate change magnitude
-#   direction   : "faster" | "slower"
+# Study 4: Salience and Direction are all NaN -- derived from Condition string
+#   e.g. "highSalienceAcc" -> salience = High, direction = Faster
+#   Group: "Breath" | "Visual"
+#   flag_zero_variance: exclude TRUE rows
+#   Single session only
+#
+# Study 5: explicit Salience ("High"/"Low") and Direction ("Faster"/"Slower")
+#   Group derived from Condition: "breath" -> "Breath", "visual" -> "Visual"
+#   ses: "ses1" | "ses2" (nested as random effect)
 
-s4 <- readr::read_csv(file.path(DATA_DIR, "study4_trials.csv"))
-s5 <- readr::read_csv(file.path(DATA_DIR, "study5_trials.csv"))
+s4_raw <- readr::read_csv(file.path(DATA_DIR, "study4_test.csv"))
+s5_raw <- readr::read_csv(file.path(DATA_DIR, "study5_test.csv"))
 
-trials_all <- dplyr::bind_rows(
-  dplyr::mutate(s4, study = "S4"),
-  dplyr::mutate(s5, study = "S5")
-)
-
-# ============================================================
-# 2. FILTER TO TEST BLOCK TRIALS
-# ============================================================
-# Exclude no-change trials (change == 0); keep only test block.
-test <- trials_all |>
-  dplyr::filter(block_type == "test", change != 0) |>
+s4 <- s4_raw |>
+  dplyr::filter(!flag_zero_variance) |>
   dplyr::mutate(
-    salience_f  = factor(salience, levels = c("high", "low")),
-    accuracy_f  = factor(accuracy, levels = c(0, 1), labels = c("miss", "hit")),
-    abs_change  = abs(change),
-    study_f     = factor(study)
-  )
-
-# Z-score arousal and confidence within participant x study
-test <- test |>
-  dplyr::group_by(id, study) |>
-  dplyr::mutate(
-    arousal_z    = scale(arousal)[, 1],
-    confidence_z = scale(confidence)[, 1]
+    study      = "S4",
+    salience   = dplyr::if_else(grepl("^high", Condition, ignore.case = TRUE), "High", "Low"),
+    direction  = dplyr::if_else(grepl("Acc$",  Condition), "Faster", "Slower"),
+    group      = Group,                           # "Breath" | "Visual"
+    abs_change = Level,
+    ses        = "ses1"                           # S4 is single-session
   ) |>
+  dplyr::select(id, study, ses, group, salience, direction, abs_change,
+                Accuracy, Confidence, Arousal)
+
+s5 <- s5_raw |>
+  dplyr::mutate(
+    study      = "S5",
+    salience   = Salience,                        # "High" | "Low"
+    direction  = Direction,                       # "Faster" | "Slower"
+    group      = dplyr::if_else(Condition == "breath", "Breath", "Visual"),
+    abs_change = level,
+    ses        = ses
+  ) |>
+  dplyr::select(id, study, ses, group, salience, direction, abs_change,
+                Accuracy, Confidence, Arousal)
+
+# Combine and recode
+test <- dplyr::bind_rows(s4, s5) |>
+  dplyr::rename(
+    accuracy   = Accuracy,
+    confidence = Confidence,
+    arousal    = Arousal
+  ) |>
+  dplyr::mutate(
+    salience_f  = factor(salience,  levels = c("High", "Low")),
+    accuracy_f  = factor(accuracy,  levels = c(0, 1), labels = c("miss", "hit")),
+    direction_f = factor(direction, levels = c("Faster", "Slower")),
+    group_f     = factor(group,     levels = c("Breath", "Visual")),
+    study_f     = factor(study,     levels = c("S4", "S5")),
+    ses_f       = factor(ses)
+  ) |>
+  # Z-score arousal and confidence within participant x study
   dplyr::ungroup()
 
-cat("Test block trial counts by study and salience:\n")
+cat("Trial counts by study, group, salience:\n")
 test |>
-  dplyr::count(study, salience_f) |>
+  dplyr::count(study, group_f, salience_f) |>
   print()
 
+cat("\nParticipant counts by study and group:\n")
+test |>
+  dplyr::distinct(id, study, group_f) |>
+  dplyr::count(study, group_f) |>
+  print()
+
+# Numeric coding for brms
+test_b <- test |>
+  dplyr::mutate(
+    salience_num = dplyr::if_else(salience_f == "High", 1L, 0L),
+    accuracy_num = accuracy,
+    group_num    = dplyr::if_else(group_f == "Breath", 1L, 0L),
+    study_num    = dplyr::if_else(study_f == "S5",    1L, 0L)
+  )
+
 # ============================================================
-# 3. ANALYSIS 1: MARGINAL SALIENCE EFFECT ON AROUSAL & CONFIDENCE
+# 2. HELPERS
 # ============================================================
-# Does salience condition alone predict arousal and confidence?
-# Prediction: low salience -> lower arousal and confidence.
-# Control for abs_change (constant across salience by design, but verify)
-# and direction.
-
-## 3a. Arousal
-m_arousal_sal <- lmerTest::lmer(
-  arousal_z ~ salience_f + abs_change + direction + study_f +
-    (1 | id),
-  data = test,
-  REML = FALSE
-)
-summary(m_arousal_sal)
-
-## 3b. Confidence
-m_conf_sal <- lmerTest::lmer(
-  confidence_z ~ salience_f + abs_change + direction + study_f +
-    (1 | id),
-  data = test,
-  REML = FALSE
-)
-summary(m_conf_sal)
-
-## Effect sizes (partial r)
 partial_r <- function(model, term) {
-  tt <- summary(model)$coefficients
+  tt    <- summary(model)$coefficients
   t_val <- tt[term, "t value"]
   df    <- tt[term, "df"]
   r     <- t_val / sqrt(t_val^2 + df)
@@ -120,134 +131,213 @@ partial_r <- function(model, term) {
                  ci_lo = round(ci_lo, 3), ci_hi = round(ci_hi, 3))
 }
 
-marginal_effects <- dplyr::bind_rows(
-  partial_r(m_arousal_sal,  "salience_flow") |> dplyr::mutate(outcome = "arousal"),
-  partial_r(m_conf_sal,     "salience_flow") |> dplyr::mutate(outcome = "confidence")
+# bobyqa optimizer with tightened gradient tolerance -- use for all lmer calls
+lmer_ctrl <- lme4::lmerControl(
+  optimizer = "bobyqa",
+  optCtrl   = list(maxfun = 2e5)
 )
-print(marginal_effects)
 
 # ============================================================
-# 4. ANALYSIS 2: SALIENCE EFFECT CONDITIONAL ON HIT/MISS
+# 3. ANALYSIS 1: MARGINAL SALIENCE EFFECT
 # ============================================================
-# Does salience still predict arousal after controlling for detection status?
-# If awareness-gating is the full story: salience_f should drop out once
-# accuracy_f is included (no direct path from salience to arousal).
+# Does salience alone predict arousal and confidence?
+# Singular fit with nested (1|id/ses_f) -- (1|id) is sufficient.
 
-## 4a. Arousal: full model with hit/miss
-m_arousal_full <- lmerTest::lmer(
-  arousal_z ~ salience_f * accuracy_f + abs_change + direction + study_f +
+m_arousal_sal <- lmerTest::lmer(
+  arousal ~ salience_f + study_f +
     (1 | id),
-  data = test,
-  REML = FALSE
+  data = test, REML = FALSE, control = lmer_ctrl
+)
+summary(m_arousal_sal)
+
+m_conf_sal <- lmerTest::lmer(
+  confidence ~ salience_f + study_f +
+    (1 | id),
+  data = test, REML = FALSE, control = lmer_ctrl
+)
+summary(m_conf_sal)
+
+marginal_effects <- dplyr::bind_rows(
+  partial_r(m_arousal_sal, "salience_fLow") |> dplyr::mutate(outcome = "arousal"),
+  partial_r(m_conf_sal,    "salience_fLow") |> dplyr::mutate(outcome = "confidence")
+)
+cat("\nMarginal salience effects:\n"); print(marginal_effects)
+
+# ============================================================
+# 4. ANALYSIS 2: SALIENCE CONDITIONAL ON HIT/MISS
+# ============================================================
+# If awareness-gating is the full story, salience_f drops out
+# once accuracy_f is included.
+
+m_arousal_full <- lmerTest::lmer(
+  arousal ~ salience_f * accuracy_f + study_f +
+    (1 | id),
+  data = test, REML = FALSE, control = lmer_ctrl
 )
 summary(m_arousal_full)
 
-## 4b. Confidence: full model
 m_conf_full <- lmerTest::lmer(
-  confidence_z ~ salience_f * accuracy_f + abs_change + direction + study_f +
+  confidence ~ salience_f * accuracy_f + study_f +
     (1 | id),
-  data = test,
-  REML = FALSE
+  data = test, REML = FALSE, control = lmer_ctrl
 )
 summary(m_conf_full)
 
-## Likelihood ratio test: does adding accuracy improve over salience-only?
 lrt_arousal <- anova(m_arousal_sal, m_arousal_full)
 lrt_conf    <- anova(m_conf_sal,    m_conf_full)
-cat("\nLRT arousal (salience-only vs salience+accuracy):\n"); print(lrt_arousal)
-cat("\nLRT confidence (salience-only vs salience+accuracy):\n"); print(lrt_conf)
+cat("\nLRT arousal (marginal vs +accuracy):\n");    print(lrt_arousal)
+cat("\nLRT confidence (marginal vs +accuracy):\n"); print(lrt_conf)
 
 # ============================================================
-# 5. ANALYSIS 3: MEDIATION -- SALIENCE -> DETECTION -> AROUSAL
+# 5. ANALYSIS 3: GROUP INTERACTIONS
 # ============================================================
-# Formal mediation: salience affects arousal via detection accuracy.
-# Uses person-level summaries for mediation package.
-# Prediction: indirect effect significant; direct effect near-zero.
+# Key theoretical test: does the salience x accuracy (awareness-gating)
+# pattern differ between Breath and Visual groups?
+#
+# Predictions:
+#   Breath:  strong salience x accuracy interaction (gating of interoceptive signal)
+#   Visual:  salience effect absent or not moderated by accuracy
+#            (no interoceptive signal to gate)
+#
+# Three models:
+#   5a. salience x group          (marginal group moderation)
+#   5b. salience x accuracy x group (three-way: is gating Breath-specific?)
+#   5c. simple effects within each group
 
+## 5a. Marginal: does the salience effect differ by group?
+m_arousal_grp <- lmerTest::lmer(
+  arousal ~ salience_f * group_f + study_f +
+    (1 | id),
+  data = test, REML = FALSE, control = lmer_ctrl
+)
+summary(m_arousal_grp)
+
+m_conf_grp <- lmerTest::lmer(
+  confidence ~ salience_f * group_f + study_f +
+    (1 | id),
+  data = test, REML = FALSE, control = lmer_ctrl
+)
+summary(m_conf_grp)
+
+cat("\nType III ANOVA -- Group x Salience (arousal):\n")
+car::Anova(m_arousal_grp, type = 3) |> print()
+cat("\nType III ANOVA -- Group x Salience (confidence):\n")
+car::Anova(m_conf_grp, type = 3) |> print()
+
+## 5b. Three-way: salience x accuracy x group
+m_arousal_3way <- lmerTest::lmer(
+  arousal ~ salience_f * accuracy_f * group_f +
+    study_f +
+    (1 | id),
+  data = test, REML = FALSE, control = lmer_ctrl
+)
+summary(m_arousal_3way)
+
+m_conf_3way <- lmerTest::lmer(
+  confidence ~ salience_f * accuracy_f * group_f +
+    study_f +
+    (1 | id),
+  data = test, REML = FALSE, control = lmer_ctrl
+)
+summary(m_conf_3way)
+
+# LRT: does group moderation improve on two-way model?
+lrt_3way_arousal <- anova(m_arousal_full, m_arousal_3way)
+lrt_3way_conf    <- anova(m_conf_full,    m_conf_3way)
+cat("\nLRT: two-way vs three-way (arousal):\n");    print(lrt_3way_arousal)
+cat("\nLRT: two-way vs three-way (confidence):\n"); print(lrt_3way_conf)
+
+## 5c. Simple effects within each group
+for (grp in c("Breath", "Visual")) {
+  cat(sprintf("\n--- Simple effects: %s group ---\n", grp))
+  df_grp <- dplyr::filter(test, group_f == grp)
+  
+  m_a <- lmerTest::lmer(
+    arousal ~ salience_f * accuracy_f + study_f +
+      (1 | id),
+    data = df_grp, REML = FALSE, control = lmer_ctrl
+  )
+  m_c <- lmerTest::lmer(
+    confidence ~ salience_f * accuracy_f + study_f +
+      (1 | id),
+    data = df_grp, REML = FALSE, control = lmer_ctrl
+  )
+  cat(sprintf("Arousal -- %s:\n", grp));    print(summary(m_a)$coefficients)
+  cat(sprintf("Confidence -- %s:\n", grp)); print(summary(m_c)$coefficients)
+}
+
+# ============================================================
+# 6. ANALYSIS 4: FREQUENTIST MEDIATION BY GROUP (person-level)
+# ============================================================
 person_test <- test |>
-  dplyr::group_by(id, study, salience_f) |>
+  dplyr::group_by(id, study, group_f, salience_f) |>
   dplyr::summarise(
-    mean_arousal    = mean(arousal_z,    na.rm = TRUE),
-    mean_confidence = mean(confidence_z, na.rm = TRUE),
+    mean_arousal    = mean(arousal,    na.rm = TRUE),
+    mean_confidence = mean(confidence, na.rm = TRUE),
     mean_accuracy   = mean(accuracy,     na.rm = TRUE),
     n_trials        = dplyr::n(),
-    .groups = "drop"
+    .groups         = "drop"
   ) |>
-  dplyr::mutate(salience_num = ifelse(salience_f == "high", 1, 0))
+  dplyr::mutate(salience_num = dplyr::if_else(salience_f == "High", 1, 0))
 
-# Mediator model: salience -> detection accuracy
-med_model <- lm(mean_accuracy ~ salience_num, data = person_test)
-
-# Outcome model: salience + accuracy -> arousal
-out_model <- lm(mean_arousal ~ salience_num + mean_accuracy, data = person_test)
-
-med_result <- mediation::mediate(
-  med_model, out_model,
-  treat = "salience_num", mediator = "mean_accuracy",
-  boot = TRUE, sims = 1000
-)
-summary(med_result)
-
-# Repeat for confidence as outcome
-out_conf_model <- lm(mean_confidence ~ salience_num + mean_accuracy, data = person_test)
-med_conf_result <- mediation::mediate(
-  med_model, out_conf_model,
-  treat = "salience_num", mediator = "mean_accuracy",
-  boot = TRUE, sims = 1000
-)
-summary(med_conf_result)
-
-# ============================================================
-# 6. BAYESIAN NULL TEST: DIRECT SALIENCE EFFECT AFTER CONDITIONING
-# ============================================================
-# After conditioning on hit/miss, does salience retain a direct effect?
-# BF01 > 3 supports the awareness-gating account (no direct path).
-
-# Person-level: high vs low salience arousal residualized for accuracy
-person_wide <- person_test |>
-  dplyr::select(id, study, salience_f, mean_arousal, mean_accuracy) |>
-  tidyr::pivot_wider(
-    names_from  = salience_f,
-    values_from = c(mean_arousal, mean_accuracy)
-  ) |>
-  dplyr::mutate(
-    arousal_diff  = mean_arousal_high  - mean_arousal_low,
-    accuracy_diff = mean_accuracy_high - mean_accuracy_low
+run_mediation <- function(data, outcome_var, label, n_boot = 1000) {
+  keep <- !is.na(data$mean_accuracy)  & !is.nan(data$mean_accuracy) &
+    !is.na(data[[outcome_var]]) & !is.nan(data[[outcome_var]])
+  data <- data[keep, ]
+  
+  out_fml <- paste(outcome_var, "~ salience_num + mean_accuracy")
+  
+  # Point estimates
+  a_est  <- coef(lm(mean_accuracy ~ salience_num, data = data))[["salience_num"]]
+  out_pt <- coef(lm(as.formula(out_fml), data = data))
+  b_est  <- out_pt[["mean_accuracy"]]
+  d_est  <- out_pt[["salience_num"]]
+  indirect_est <- a_est * b_est
+  
+  # Percentile bootstrap CIs
+  set.seed(42)
+  boot_indirect <- replicate(n_boot, {
+    db   <- data[sample(nrow(data), replace = TRUE), ]
+    a_b  <- coef(lm(mean_accuracy ~ salience_num, data = db))[["salience_num"]]
+    b_b  <- coef(lm(as.formula(out_fml), data = db))[["mean_accuracy"]]
+    a_b * b_b
+  })
+  
+  cat(sprintf("\n--- Mediation: %s (%s) ---\n", outcome_var, label))
+  cat(sprintf("  a (sal->acc):    %.3f\n", a_est))
+  cat(sprintf("  b (acc->out):    %.3f\n", b_est))
+  cat(sprintf("  Indirect (a*b):  %.3f [%.3f, %.3f]\n",
+              indirect_est,
+              quantile(boot_indirect, .025),
+              quantile(boot_indirect, .975)))
+  cat(sprintf("  Direct:          %.3f\n", d_est))
+  
+  tibble::tibble(
+    group    = label,
+    outcome  = outcome_var,
+    indirect = round(indirect_est, 3),
+    ind_lo   = round(quantile(boot_indirect, .025), 3),
+    ind_hi   = round(quantile(boot_indirect, .975), 3),
+    direct   = round(d_est, 3),
+    prop_med = round(indirect_est / (indirect_est + d_est), 3)
   )
+}
 
-# Residualize arousal difference on accuracy difference
-resid_model  <- lm(arousal_diff ~ accuracy_diff, data = person_wide)
-arousal_resid <- residuals(resid_model)
-
-bf_direct <- BayesFactor::ttestBF(arousal_resid)
-cat("\nBF10 for residual salience effect on arousal (after controlling accuracy):\n")
-print(bf_direct)
-cat("BF01 (null):", round(1 / exp(bf_direct@bayesFactor$bf), 2), "\n")
+mediation_results <- purrr::map_dfr(
+  c("Breath", "Visual"),
+  function(grp) {
+    df_grp <- dplyr::filter(person_test, group_f == grp)
+    dplyr::bind_rows(
+      run_mediation(df_grp, "mean_arousal",    grp),
+      run_mediation(df_grp, "mean_confidence", grp)
+    )
+  }
+)
+cat("\n--- Mediation summary by group ---\n"); print(mediation_results)
 
 # ============================================================
-# 7. BRMS: MULTILEVEL MEDIATION (TRIAL-LEVEL)
+# 7. BRMS: MULTILEVEL MEDIATION WITH GROUP INTERACTION
 # ============================================================
-# Proper trial-level multilevel mediation using brms.
-# Advantage over Section 5: preserves within-person trial variance
-# rather than collapsing to person-level means.
-#
-# Two-equation model:
-#   M model: accuracy ~ salience + controls + (1 | id)
-#   Y model: arousal  ~ salience + accuracy + controls + (1 | id)
-#
-# Indirect effect = b_sal_on_accuracy * b_accuracy_on_arousal
-# Direct effect   = b_sal_on_arousal (after conditioning on accuracy)
-# Prediction: large indirect, near-zero direct.
-
-# Numeric coding for brms (required for indirect effect computation)
-test_b <- test |>
-  dplyr::mutate(
-    salience_num  = ifelse(salience_f == "high", 1, 0),
-    accuracy_num  = as.numeric(accuracy),          # 0/1
-    study_num     = as.numeric(study_f) - 1        # 0/1 dummy
-  )
-
-# Weakly informative priors consistent with z-scored outcomes
 bpriors <- c(
   brms::prior(normal(0, 1),   class = "b"),
   brms::prior(normal(0, 1),   class = "Intercept"),
@@ -255,317 +345,324 @@ bpriors <- c(
   brms::prior(exponential(1), class = "sigma")
 )
 
-## 7a. Mediator model: salience -> accuracy (logistic; accuracy is 0/1)
+## 7a. Mediator: salience x group -> accuracy (logistic)
 bm_med <- brms::brm(
-  accuracy_num ~ salience_num + abs_change + study_num + (1 | id),
+  accuracy_num ~ salience_num * group_num + study_num +
+    (1 | id),
   data   = test_b,
   family = brms::bernoulli(link = "logit"),
-  prior  = bpriors[bpriors$class != "sigma", ],   # no sigma for bernoulli
+  prior  = bpriors[bpriors$class != "sigma", ],
   chains = 4, iter = 2000, warmup = 1000,
   cores  = 4, seed = 42,
-  file   = file.path(RESULTS_DIR, "brms_mediator_model")
+  file   = file.path(RDS_DIR, "brms_mediator_group")
 )
 summary(bm_med)
 
-## 7b. Outcome model: salience + accuracy -> arousal
+## 7b. Outcome: arousal ~ salience x group + accuracy x group
 bm_out_arousal <- brms::brm(
-  arousal_z ~ salience_num + accuracy_num + abs_change + study_num + (1 | id),
+  arousal ~ salience_num * group_num + accuracy_num * group_num +
+    study_num + (1 | id),
   data   = test_b,
-  family = brms::gaussian(),
+  family = gaussian(),
   prior  = bpriors,
   chains = 4, iter = 2000, warmup = 1000,
   cores  = 4, seed = 42,
-  file   = file.path(RESULTS_DIR, "brms_outcome_arousal")
+  file   = file.path(RDS_DIR, "brms_outcome_arousal_group")
 )
 summary(bm_out_arousal)
 
-## 7c. Outcome model: salience + accuracy -> confidence
+## 7c. Outcome: confidence ~ salience x group + accuracy x group
 bm_out_conf <- brms::brm(
-  confidence_z ~ salience_num + accuracy_num + abs_change + study_num + (1 | id),
+  confidence ~ salience_num * group_num + accuracy_num * group_num +
+    study_num + (1 | id),
   data   = test_b,
-  family = brms::gaussian(),
+  family = gaussian(),
   prior  = bpriors,
   chains = 4, iter = 2000, warmup = 1000,
   cores  = 4, seed = 42,
-  file   = file.path(RESULTS_DIR, "brms_outcome_confidence")
+  file   = file.path(RDS_DIR, "brms_outcome_confidence_group")
 )
 summary(bm_out_conf)
 
-## 7d. Compute indirect effects from posterior draws
-# Extract posterior samples for key coefficients
-draws_med    <- tidybayes::spread_draws(bm_med,        b_salience_num)
-draws_arousal <- tidybayes::spread_draws(bm_out_arousal, b_salience_num, b_accuracy_num)
-draws_conf    <- tidybayes::spread_draws(bm_out_conf,    b_salience_num, b_accuracy_num)
-
-# Rename to avoid collision when joining
-draws_med <- draws_med |>
-  dplyr::rename(a_path = b_salience_num)   # salience -> accuracy (log-odds scale)
-
-# Note: a_path is on log-odds scale; for a linear approximation of the
-# indirect effect on the arousal scale, multiply by b_accuracy (linear).
-# For a fully probability-scale indirect effect, use marginal effects instead.
-# Here we report both the linear approximation and flag the scale caveat.
-
-indirect_arousal <- draws_med |>
-  dplyr::bind_cols(
-    draws_arousal |>
-      dplyr::select(b_path_sal = b_salience_num,
-                    b_path_acc = b_accuracy_num)
-  ) |>
-  dplyr::mutate(
-    indirect = a_path * b_path_acc,   # linear approximation
-    direct   = b_path_sal
-  )
-
-indirect_conf <- draws_med |>
-  dplyr::bind_cols(
-    draws_conf |>
-      dplyr::select(b_path_sal = b_salience_num,
-                    b_path_acc = b_accuracy_num)
-  ) |>
-  dplyr::mutate(
-    indirect = a_path * b_path_acc,
-    direct   = b_path_sal
-  )
-
-# Summarise posterior
-summarise_path <- function(draws, label) {
-  draws |>
-    dplyr::summarise(
-      indirect_mean  = mean(indirect),
-      indirect_lo95  = quantile(indirect, .025),
-      indirect_hi95  = quantile(indirect, .975),
-      direct_mean    = mean(direct),
-      direct_lo95    = quantile(direct,   .025),
-      direct_hi95    = quantile(direct,   .975),
-      p_indirect_pos = mean(indirect > 0),
-      p_direct_zero  = mean(abs(direct) < 0.05)   # P(|direct| < small threshold)
-    ) |>
-    dplyr::mutate(outcome = label)
+## 7d. Group-specific indirect effects from posterior draws
+# as_draws_df avoids tidybayes spec-parser issues with colons in parameter names
+get_draws <- function(model, pattern) {
+  df <- posterior::as_draws_df(model)
+  dplyr::select(df, dplyr::matches(pattern))
 }
 
-brms_mediation_summary <- dplyr::bind_rows(
-  summarise_path(indirect_arousal, "arousal"),
-  summarise_path(indirect_conf,    "confidence")
-)
+draws_med_df <- posterior::as_draws_df(bm_med)
+b_params_med <- grep("^b_", names(draws_med_df), value = TRUE)
+cat("\nMediator model b_ parameters:\n"); print(b_params_med)
+sal_col     <- grep("b_salience_num$",                         names(draws_med_df), value = TRUE)
+sal_grp_col <- grep("b_.*salience.*group|b_.*group.*salience", names(draws_med_df), value = TRUE)
 
-cat("\n--- brms Mediation Summary (trial-level multilevel) ---\n")
-print(brms_mediation_summary)
-
-## 7e. Bayes Factor for direct effect being null (bridge sampling)
-# Fit constrained model (direct path = 0) for BF comparison
-bm_out_arousal_nodirect <- brms::brm(
-  arousal_z ~ accuracy_num + abs_change + study_num + (1 | id),
-  data        = test_b,
-  family      = brms::gaussian(),
-  prior       = bpriors,
-  chains      = 4, iter = 4000, warmup = 2000,   # more iterations for bridge sampling
-  cores       = 4, seed = 42,
-  save_pars   = brms::save_pars(all = TRUE),
-  file        = file.path(RESULTS_DIR, "brms_outcome_arousal_nodirect")
-)
-
-# Refit full model with save_pars for bridge sampling
-bm_out_arousal_full_bs <- brms::brm(
-  arousal_z ~ salience_num + accuracy_num + abs_change + study_num + (1 | id),
-  data        = test_b,
-  family      = brms::gaussian(),
-  prior       = bpriors,
-  chains      = 4, iter = 4000, warmup = 2000,
-  cores       = 4, seed = 42,
-  save_pars   = brms::save_pars(all = TRUE),
-  file        = file.path(RESULTS_DIR, "brms_outcome_arousal_full_bs")
-)
-
-bf_direct_brms <- brms::bayes_factor(bm_out_arousal_nodirect,
-                                      bm_out_arousal_full_bs)
-cat("\nBF for no-direct-path model vs full model (arousal):\n")
-print(bf_direct_brms)
-cat("BF01 (null direct path):", round(bf_direct_brms$bf, 2), "\n")
-
-## 7f. Save brms mediation summary
-readr::write_csv(
-  brms_mediation_summary,
-  file.path(RESULTS_DIR, "brms_mediation_summary.csv")
-)
-
-# ============================================================
-# 8. COMPARE FREQUENTIST vs BRMS RESULTS
-# ============================================================
-# Side-by-side summary of key estimates from both approaches.
-
-freq_direct_arousal <- broom.mixed::tidy(m_arousal_full, effects = "fixed") |>
-  dplyr::filter(term == "salience_flow") |>
-  dplyr::transmute(
-    approach = "frequentist",
-    outcome  = "arousal",
-    estimate = round(estimate, 3),
-    ci_lo    = round(estimate - 1.96 * std.error, 3),
-    ci_hi    = round(estimate + 1.96 * std.error, 3),
-    p_or_pd  = round(p.value, 4)
-  )
-
-freq_direct_conf <- broom.mixed::tidy(m_conf_full, effects = "fixed") |>
-  dplyr::filter(term == "salience_flow") |>
-  dplyr::transmute(
-    approach = "frequentist",
-    outcome  = "confidence",
-    estimate = round(estimate, 3),
-    ci_lo    = round(estimate - 1.96 * std.error, 3),
-    ci_hi    = round(estimate + 1.96 * std.error, 3),
-    p_or_pd  = round(p.value, 4)
-  )
-
-brms_direct_arousal <- tidybayes::spread_draws(bm_out_arousal, b_salience_num) |>
-  dplyr::summarise(
-    approach = "brms",
-    outcome  = "arousal",
-    estimate = round(mean(b_salience_num), 3),
-    ci_lo    = round(quantile(b_salience_num, .025), 3),
-    ci_hi    = round(quantile(b_salience_num, .975), 3),
-    p_or_pd  = round(mean(b_salience_num > 0), 3)   # P(direction)
-  )
-
-brms_direct_conf <- tidybayes::spread_draws(bm_out_conf, b_salience_num) |>
-  dplyr::summarise(
-    approach = "brms",
-    outcome  = "confidence",
-    estimate = round(mean(b_salience_num), 3),
-    ci_lo    = round(quantile(b_salience_num, .025), 3),
-    ci_hi    = round(quantile(b_salience_num, .975), 3),
-    p_or_pd  = round(mean(b_salience_num > 0), 3)
-  )
-
-comparison_table <- dplyr::bind_rows(
-  freq_direct_arousal, freq_direct_conf,
-  brms_direct_arousal, brms_direct_conf
+draws_med <- tibble::tibble(
+  b_sal     = draws_med_df[[sal_col]],
+  b_sal_grp = draws_med_df[[sal_grp_col]]
 ) |>
-  dplyr::arrange(outcome, approach)
+  dplyr::mutate(
+    a_breath = b_sal + b_sal_grp,
+    a_visual = b_sal
+  )
 
-cat("\n--- Direct Salience Effect: Frequentist vs brms ---\n")
-cat("(p_or_pd = p-value for frequentist; P(beta > 0) for brms)\n")
-print(comparison_table)
+compute_indirect <- function(outcome_model, draws_med, outcome_label) {
+  out_df      <- posterior::as_draws_df(outcome_model)
+  
+  # Diagnostic: print available b_ parameters so naming is transparent
+  b_params <- grep("^b_", names(out_df), value = TRUE)
+  cat("\nbrms parameters in", outcome_label, "model:\n")
+  print(b_params)
+  
+  acc_col     <- grep("b_accuracy_num$",               names(out_df), value = TRUE)
+  acc_grp_col <- grep("b_.*accuracy.*group|b_.*group.*accuracy", names(out_df), value = TRUE)
+  
+  if (length(acc_grp_col) == 0)
+    stop("Cannot find accuracy:group interaction term. Available: ",
+         paste(b_params, collapse = ", "))
+  
+  draws_out <- tibble::tibble(
+    b_acc     = out_df[[acc_col]],
+    b_acc_grp = out_df[[acc_grp_col]]
+  ) |>
+    dplyr::mutate(
+      b_breath = b_acc + b_acc_grp,
+      b_visual = b_acc
+    )
+  
+  draws_combined <- dplyr::bind_cols(
+    draws_med  |> dplyr::select(a_breath, a_visual),
+    draws_out  |> dplyr::select(b_breath, b_visual)
+  ) |>
+    dplyr::mutate(
+      indirect_breath = a_breath * b_breath,
+      indirect_visual = a_visual * b_visual,
+      indirect_diff   = indirect_breath - indirect_visual  # Breath - Visual
+    )
+  
+  summary <- draws_combined |>
+    dplyr::summarise(
+      dplyr::across(
+        c(indirect_breath, indirect_visual, indirect_diff),
+        list(mean = mean,
+             lo95 = ~ quantile(.x, .025),
+             hi95 = ~ quantile(.x, .975),
+             pd   = ~ mean(.x > 0)),
+        .names = "{.col}_{.fn}"
+      )
+    ) |>
+    dplyr::mutate(outcome = outcome_label)
+  
+  list(summary = summary, draws = draws_combined)
+}
 
-readr::write_csv(
-  comparison_table,
-  file.path(RESULTS_DIR, "freq_vs_brms_direct_effect.csv")
+brms_indirect_raw <- list(
+  arousal    = compute_indirect(bm_out_arousal, draws_med, "arousal"),
+  confidence = compute_indirect(bm_out_conf,    draws_med, "confidence")
 )
+
+brms_indirect <- dplyr::bind_rows(
+  brms_indirect_raw$arousal$summary,
+  brms_indirect_raw$confidence$summary
+)
+
+# Print full indirect summary with group difference
+cat("\n--- brms indirect effects (Breath, Visual, Breath - Visual) ---\n")
+brms_indirect |>
+  dplyr::select(outcome,
+                ends_with("breath_mean"), ends_with("breath_lo95"), ends_with("breath_hi95"),
+                ends_with("visual_mean"), ends_with("visual_lo95"), ends_with("visual_hi95"),
+                ends_with("diff_mean"),   ends_with("diff_lo95"),   ends_with("diff_hi95"),
+                ends_with("diff_pd")) |>
+  print(width = 120)
+
+# Posterior probability that Breath indirect > Visual indirect (for arousal)
+cat(sprintf(
+  "\nP(indirect_breath > indirect_visual) for arousal: %.3f\n",
+  mean(brms_indirect_raw$arousal$draws$indirect_breath >
+         brms_indirect_raw$arousal$draws$indirect_visual)
+))
+cat(sprintf(
+  "Posterior diff (Breath - Visual): %.3f [%.3f, %.3f]\n",
+  mean(brms_indirect_raw$arousal$draws$indirect_diff),
+  quantile(brms_indirect_raw$arousal$draws$indirect_diff, .025),
+  quantile(brms_indirect_raw$arousal$draws$indirect_diff, .975)
+))
+
+## 7e. BF for null direct salience path (bridge sampling)
+bm_out_arousal_bs <- brms::brm(
+  arousal ~ salience_num * group_num + accuracy_num * group_num +
+    study_num + (1 | id),
+  data      = test_b, family = gaussian(), prior = bpriors,
+  chains = 4, iter = 4000, warmup = 2000, cores = 4, seed = 42,
+  save_pars = brms::save_pars(all = TRUE),
+  file      = file.path(RDS_DIR, "brms_arousal_group_bs")
+)
+
+bm_out_arousal_nodirect <- brms::brm(
+  arousal ~ accuracy_num * group_num + study_num +
+    (1 | id),
+  data      = test_b, family = gaussian(), prior = bpriors,
+  chains = 4, iter = 4000, warmup = 2000, cores = 4, seed = 42,
+  save_pars = brms::save_pars(all = TRUE),
+  file      = file.path(RDS_DIR, "brms_arousal_nodirect_group")
+)
+
+bf_direct <- brms::bayes_factor(bm_out_arousal_nodirect, bm_out_arousal_bs)
+cat("\nBF01 for null direct salience path (arousal, with group):",
+    round(bf_direct$bf, 2), "\n")
+
+# ============================================================
+# 8. COMPARE FREQUENTIST vs BRMS: KEY TERMS
+# ============================================================
+freq_3way <- broom.mixed::tidy(m_arousal_3way, effects = "fixed") |>
+  dplyr::transmute(
+    approach = "frequentist", outcome = "arousal", term,
+    estimate = round(estimate, 3),
+    ci_lo    = round(estimate - 1.96 * std.error, 3),
+    ci_hi    = round(estimate + 1.96 * std.error, 3),
+    p_or_pd  = round(p.value, 4)
+  )
+
+brms_key <- local({
+  df          <- posterior::as_draws_df(bm_out_arousal)
+  acc_col     <- grep("b_accuracy_num$",                         names(df), value = TRUE)
+  acc_grp_col <- grep("b_.*accuracy.*group|b_.*group.*accuracy", names(df), value = TRUE)
+  acc_vec     <- df[[acc_col]]
+  grp_vec     <- df[[acc_grp_col]]
+  dplyr::bind_rows(
+    tibble::tibble(
+      approach = "brms", outcome = "arousal", term = "accuracy_num",
+      estimate = round(mean(acc_vec), 3),
+      ci_lo    = round(quantile(acc_vec, .025), 3),
+      ci_hi    = round(quantile(acc_vec, .975), 3),
+      p_or_pd  = round(mean(acc_vec > 0), 3)
+    ),
+    tibble::tibble(
+      approach = "brms", outcome = "arousal", term = "accuracy_num:group_num",
+      estimate = round(mean(grp_vec), 3),
+      ci_lo    = round(quantile(grp_vec, .025), 3),
+      ci_hi    = round(quantile(grp_vec, .975), 3),
+      p_or_pd  = round(mean(grp_vec > 0), 3)
+    )
+  )
+})
+
+comparison_table <- dplyr::bind_rows(freq_3way, brms_key) |>
+  dplyr::arrange(term, approach)
+cat("\n--- Key terms: frequentist vs brms ---\n"); print(comparison_table)
 
 # ============================================================
 # 9. VISUALIZATION
 # ============================================================
 
-## 7a. Arousal and confidence by salience, split hit/miss
-p_arousal <- ggplot2::ggplot(
-  test,
-  ggplot2::aes(x = salience_f, y = arousal_z, colour = accuracy_f, fill = accuracy_f)
-) +
-  ggplot2::stat_summary(fun = mean, geom = "bar", position = "dodge",
-                        alpha = 0.6, width = 0.6) +
-  ggplot2::stat_summary(fun.data = mean_cl_boot, geom = "errorbar",
-                        position = ggplot2::position_dodge(0.6), width = 0.2) +
-  ggplot2::facet_wrap(~ study_f) +
-  ggplot2::scale_colour_manual(values = c("miss" = "#4C72B0", "hit" = "#DD8452")) +
-  ggplot2::scale_fill_manual(  values = c("miss" = "#4C72B0", "hit" = "#DD8452")) +
-  ggplot2::labs(
-    x = "Salience", y = "Arousal (z)", colour = "Detection", fill = "Detection",
-    title = "Test Block: Arousal by Salience and Detection"
+## 9a. Arousal and confidence: salience x hit/miss x group
+make_bar_plot <- function(outcome_var, ylabel, title_str) {
+  ggplot2::ggplot(
+    test,
+    ggplot2::aes(x = salience_f, y = .data[[outcome_var]],
+                 colour = accuracy_f, fill = accuracy_f)
   ) +
-  ggplot2::theme_classic(base_size = 12)
+    ggplot2::stat_summary(fun = mean, geom = "bar",
+                          position = "dodge", alpha = 0.6, width = 0.6) +
+    ggplot2::stat_summary(fun.data = mean_cl_boot, geom = "errorbar",
+                          position = ggplot2::position_dodge(0.6), width = 0.2) +
+    ggplot2::facet_grid(study_f ~ group_f) +
+    ggplot2::scale_colour_manual(values = c("miss" = "#4C72B0", "hit" = "#DD8452")) +
+    ggplot2::scale_fill_manual(  values = c("miss" = "#4C72B0", "hit" = "#DD8452")) +
+    ggplot2::labs(x = "Salience", y = ylabel,
+                  colour = "Detection", fill = "Detection", title = title_str) +
+    ggplot2::theme_classic(base_size = 12) +
+    ggplot2::theme(strip.background = ggplot2::element_blank())
+}
 
-p_conf <- p_arousal +
-  ggplot2::aes(y = confidence_z) +
-  ggplot2::labs(y = "Confidence (z)",
-                title = "Test Block: Confidence by Salience and Detection")
+p_combined <- make_bar_plot("arousal",    "Arousal (1-6)",    "Arousal: Salience x Detection x Group") /
+  make_bar_plot("confidence", "Confidence (1-6)", "Confidence: Salience x Detection x Group")
 
-p_combined <- p_arousal / p_conf
 ggplot2::ggsave(
-  file.path(RESULTS_DIR, "test_block_arousal_confidence.png"),
-  p_combined, width = 8, height = 8, dpi = 300
+  file.path(FIGURES_DIR, "test_block_arousal_confidence_group.png"),
+  p_combined, width = 10, height = 10, dpi = 300
 )
 
-## 9b. Posterior distributions for direct vs indirect effects (brms)
-posterior_plot_data <- dplyr::bind_rows(
-  indirect_arousal |>
-    dplyr::select(indirect, direct) |>
-    tidyr::pivot_longer(everything(), names_to = "path", values_to = "value") |>
-    dplyr::mutate(outcome = "arousal"),
-  indirect_conf |>
-    dplyr::select(indirect, direct) |>
-    tidyr::pivot_longer(everything(), names_to = "path", values_to = "value") |>
-    dplyr::mutate(outcome = "confidence")
-)
+## 9b. Posterior indirect effects by group (arousal)
+# Re-use draws already computed in compute_indirect -- no need to re-extract
+arousal_draws_plot <- brms_indirect_raw$arousal$draws |>
+  dplyr::select(indirect_breath, indirect_visual, indirect_diff) |>
+  tidyr::pivot_longer(everything(), names_to = "path", values_to = "value") |>
+  dplyr::mutate(path = dplyr::recode(path,
+                                     indirect_breath = "Breath",
+                                     indirect_visual = "Visual",
+                                     indirect_diff   = "Breath - Visual"
+  ))
 
 p_posterior <- ggplot2::ggplot(
-  posterior_plot_data,
+  dplyr::filter(arousal_draws_plot, path != "Breath - Visual"),
   ggplot2::aes(x = value, fill = path, colour = path)
 ) +
   ggplot2::geom_density(alpha = 0.4) +
   ggplot2::geom_vline(xintercept = 0, linetype = "dashed", colour = "grey40") +
-  ggplot2::facet_wrap(~ outcome, scales = "free") +
-  ggplot2::scale_fill_manual(
-    values = c("indirect" = "#DD8452", "direct" = "#4C72B0"),
-    labels = c("indirect" = "Indirect (via detection)", "direct" = "Direct")
-  ) +
-  ggplot2::scale_colour_manual(
-    values = c("indirect" = "#DD8452", "direct" = "#4C72B0"),
-    labels = c("indirect" = "Indirect (via detection)", "direct" = "Direct")
-  ) +
+  ggplot2::scale_fill_manual(  values = c("Breath" = "#DD8452", "Visual" = "#4C72B0")) +
+  ggplot2::scale_colour_manual(values = c("Breath" = "#DD8452", "Visual" = "#4C72B0")) +
   ggplot2::labs(
-    x = "Posterior estimate", y = "Density",
-    fill = "Path", colour = "Path",
-    title = "Posterior: Salience -> Arousal/Confidence",
-    subtitle = "Indirect path (via detection) vs direct path"
+    x = "Indirect effect (salience -> detection -> arousal)",
+    y = "Density", fill = "Group", colour = "Group",
+    title = "Posterior: Group-specific indirect effects on arousal"
+  ) +
+  ggplot2::theme_classic(base_size = 12)
+
+p_diff <- ggplot2::ggplot(
+  dplyr::filter(arousal_draws_plot, path == "Breath - Visual"),
+  ggplot2::aes(x = value)
+) +
+  ggplot2::geom_density(fill = "#59A14F", colour = "#59A14F", alpha = 0.4) +
+  ggplot2::geom_vline(xintercept = 0, linetype = "dashed", colour = "grey40") +
+  ggplot2::labs(
+    x = "Difference in indirect effect (Breath - Visual)",
+    y = "Density",
+    title = "Posterior: Breath vs Visual indirect effect difference (arousal)"
   ) +
   ggplot2::theme_classic(base_size = 12)
 
 ggplot2::ggsave(
-  file.path(RESULTS_DIR, "brms_posterior_mediation.png"),
-  p_posterior, width = 9, height = 5, dpi = 300
+  file.path(FIGURES_DIR, "brms_posterior_indirect_group.png"),
+  p_posterior / p_diff, width = 8, height = 8, dpi = 300
 )
 
-## 9c. Mediation path diagram values (print for reporting)
-cat("\n--- Frequentist Mediation Summary: Salience -> Accuracy -> Arousal ---\n")
-cat("ACME (indirect):", round(med_result$d0, 3),
-    "95% CI [", round(med_result$d0.ci[1], 3), ",",
-    round(med_result$d0.ci[2], 3), "]\n")
-cat("ADE (direct):   ", round(med_result$z0, 3),
-    "95% CI [", round(med_result$z0.ci[1], 3), ",",
-    round(med_result$z0.ci[2], 3), "]\n")
-cat("Prop. mediated: ", round(med_result$n0, 3), "\n")
-
 # ============================================================
-# 10. SAVE FREQUENTIST RESULTS TABLE
+# 10. SAVE ALL RESULTS
 # ============================================================
 results_table <- dplyr::bind_rows(
-  # Marginal salience effects
-  broom.mixed::tidy(m_arousal_sal, effects = "fixed") |>
-    dplyr::filter(term == "salience_flow") |>
-    dplyr::mutate(model = "arousal_marginal"),
-  broom.mixed::tidy(m_conf_sal, effects = "fixed") |>
-    dplyr::filter(term == "salience_flow") |>
-    dplyr::mutate(model = "confidence_marginal"),
-  # After conditioning on accuracy
-  broom.mixed::tidy(m_arousal_full, effects = "fixed") |>
-    dplyr::filter(term %in% c("salience_flow", "accuracy_fhit")) |>
-    dplyr::mutate(model = "arousal_full"),
-  broom.mixed::tidy(m_conf_full, effects = "fixed") |>
-    dplyr::filter(term %in% c("salience_flow", "accuracy_fhit")) |>
-    dplyr::mutate(model = "confidence_full")
+  broom.mixed::tidy(m_arousal_sal,  effects = "fixed") |> dplyr::mutate(model = "arousal_marginal"),
+  broom.mixed::tidy(m_conf_sal,     effects = "fixed") |> dplyr::mutate(model = "confidence_marginal"),
+  broom.mixed::tidy(m_arousal_full, effects = "fixed") |> dplyr::mutate(model = "arousal_full"),
+  broom.mixed::tidy(m_conf_full,    effects = "fixed") |> dplyr::mutate(model = "confidence_full"),
+  broom.mixed::tidy(m_arousal_grp,  effects = "fixed") |> dplyr::mutate(model = "arousal_group"),
+  broom.mixed::tidy(m_conf_grp,     effects = "fixed") |> dplyr::mutate(model = "confidence_group"),
+  broom.mixed::tidy(m_arousal_3way, effects = "fixed") |> dplyr::mutate(model = "arousal_3way"),
+  broom.mixed::tidy(m_conf_3way,    effects = "fixed") |> dplyr::mutate(model = "confidence_3way")
 ) |>
   dplyr::mutate(
     partial_r = statistic / sqrt(statistic^2 + df),
-    across(where(is.numeric), \(x) round(x, 4))
+    dplyr::across(where(is.numeric), \(x) round(x, 4))
   ) |>
   dplyr::select(model, term, estimate, std.error, statistic, df, p.value, partial_r)
 
 readr::write_csv(results_table,
-                 file.path(RESULTS_DIR, "test_block_salience_arousal_results.csv"))
+                 file.path(RESULTS_DIR, "test_block_all_models.csv"))
+readr::write_csv(mediation_results,
+                 file.path(RESULTS_DIR, "frequentist_mediation_by_group.csv"))
+readr::write_csv(brms_indirect,
+                 file.path(RESULTS_DIR, "brms_indirect_by_group.csv"))
+readr::write_csv(brms_indirect_raw$arousal$draws,
+                 file.path(RESULTS_DIR, "brms_arousal_indirect_draws.csv"))
+readr::write_csv(comparison_table,
+                 file.path(RESULTS_DIR, "freq_vs_brms_key_terms.csv"))
 
 cat("\nDone. Files written to:", RESULTS_DIR, "\n")
-cat("  test_block_salience_arousal_results.csv  -- frequentist fixed effects\n")
-cat("  brms_mediation_summary.csv               -- brms indirect/direct path posteriors\n")
-cat("  freq_vs_brms_direct_effect.csv           -- side-by-side comparison\n")
-cat("  test_block_arousal_confidence.png        -- bar plot by salience x detection\n")
-cat("  brms_posterior_mediation.png             -- posterior density: indirect vs direct\n")
+cat("  test_block_all_models.csv                -- all frequentist fixed effects\n")
+cat("  frequentist_mediation_by_group.csv       -- mediation indirect/direct by group\n")
+cat("  brms_indirect_by_group.csv               -- brms posterior indirect effects\n")
+cat("  freq_vs_brms_key_terms.csv               -- comparison table\n")
+cat("  test_block_arousal_confidence_group.png  -- bar plots: salience x detection x group\n")
+cat("  brms_posterior_indirect_group.png        -- posterior density by group\n")
 cat("  brms_*.rds                               -- cached brms model objects\n")

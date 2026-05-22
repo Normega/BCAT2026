@@ -1,2 +1,0 @@
-study,elbow_trial,elbow_threshold_pct,sd_at_elbow,sd_at_final,n_change_trials_median,note
-Study2,8,10,0.09232572490665639,0.08979821278974454,17,Elbow = first trial where |delta SD| < 10% of initial rate. ~17 change trials from ~25 total (1/3 no-change interleaved). Matches ~8 effective change trials per condition in Studies 4/5.

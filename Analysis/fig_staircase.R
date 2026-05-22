@@ -25,8 +25,8 @@ for (thispack in packages) {
   library(thispack, character.only = TRUE, quietly = TRUE, verbose = FALSE)
 }
 
-DDIR    <- file.path(MAIN_DIR,"Data")
-FIG_DIR <- file.path(MAIN_DIR,"Figures")
+DDIR    <- file.path(BASE_DIR,"Data")
+FIG_DIR <- file.path(BASE_DIR,"Figures")
 
 # ── Colour / linetype palette ────────────────────────────────────────────────
 col_high <- "#E69F00"   # High salience (orange)

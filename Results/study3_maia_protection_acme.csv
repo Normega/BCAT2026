@@ -1,4 +1,0 @@
-maia_level,maia_z,acme,method,note
-Low MAIA (-1 SD),-1,-0.03027034551086272,Analytic from lmer coefficients,Bayesian CIs from brms_maia_moderation.rds
-High MAIA (+1 SD),1,-0.03018523023758788,Analytic from lmer coefficients,Bayesian CIs from brms_maia_moderation.rds
-Difference,NA,-8.511527327484045e-5,Analytic from lmer coefficients,Bayesian CIs from brms_maia_moderation.rds

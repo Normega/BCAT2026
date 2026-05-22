@@ -92,7 +92,7 @@ readr::write_csv(
                 stability_t$p.value,
                 nrow(mrc_compare))
   ),
-  paste0(RESULTS_DIR, "study1_task_comparison.csv")
+  file.path(RESULTS_DIR, "study1_task_comparison.csv")
 )
 message("Saved: study1_task_comparison.csv")
 
@@ -125,7 +125,7 @@ readr::write_csv(
     p        = s3_sal_t$p.value,
     cohens_d = s3_sal_d
   ),
-  paste0(RESULTS_DIR, "table_study3_salience_accuracy.csv")
+  file.path(RESULTS_DIR, "table_study3_salience_accuracy.csv")
 )
 message("Saved: table_study3_salience_accuracy.csv")
 
@@ -241,7 +241,7 @@ table_staircase_convergence <- dplyr::bind_rows(s2_row, s4_conv, s5_conv) |>
   dplyr::mutate(dplyr::across(where(is.numeric), ~ round(.x, 4)))
 
 readr::write_csv(table_staircase_convergence,
-                 paste0(RESULTS_DIR, "table_staircase_convergence.csv"))
+                 file.path(RESULTS_DIR, "table_staircase_convergence.csv"))
 message("Saved: table_staircase_convergence.csv")
 
 s45_dz  <- table_staircase_convergence |>
@@ -306,7 +306,7 @@ cat(sprintf("SD at elbow: %.4f; SD at final trial: %.4f\n",
             running_within_sd$mean_sd[nrow(running_within_sd)]))
 
 readr::write_csv(running_within_sd,
-                 paste0(RESULTS_DIR, "study2_convergence_elbow.csv"))
+                 file.path(RESULTS_DIR, "study2_convergence_elbow.csv"))
 message("Saved: study2_convergence_elbow.csv")
 
 readr::write_csv(
@@ -322,6 +322,6 @@ readr::write_csv(
                   "~17 change trials from ~25 total (1/3 no-change interleaved). ",
                   "Matches ~8 effective change trials per condition in Studies 4/5.")
   ),
-  paste0(RESULTS_DIR, "study2_convergence_elbow_summary.csv")
+  file.path(RESULTS_DIR, "study2_convergence_elbow_summary.csv")
 )
 message("Saved: study2_convergence_elbow_summary.csv")

@@ -3,7 +3,7 @@
 # Interoception 2025 — Shared Utility Functions
 #
 # Source this file at the top of every analysis script:
-#   source(paste0(base_dir, "Analysis/utils.R"))
+#   source(file.path(base_dir, "Analysis/utils.R"))
 #
 # Contents:
 #   U0.  Standard paths (set once here; used everywhere)
@@ -121,22 +121,22 @@ load_all_data <- function(data_dir = DATA_DIR) {
   message("Loading clean data from: ", data_dir)
 
   out <- list(
-    s1_long    = readr::read_csv(paste0(data_dir, "study1_long.csv")),
-    s1_summary = readr::read_csv(paste0(data_dir, "study1_summary.csv")),
-    s2_long    = readr::read_csv(paste0(data_dir, "study2_long.csv")),
-    s2_summary = readr::read_csv(paste0(data_dir, "study2_summary.csv")),
-    s3_long    = readr::read_csv(paste0(data_dir, "study3_long.csv")),
-    s3_summary = readr::read_csv(paste0(data_dir, "study3_summary.csv")),
-    s4_long    = readr::read_csv(paste0(data_dir, "study4_long.csv")),
-    s4_test    = readr::read_csv(paste0(data_dir, "study4_test.csv")),
-    s4_summary = readr::read_csv(paste0(data_dir, "study4_summary.csv")),
-    s5_long    = readr::read_csv(paste0(data_dir, "study5_long.csv")),
-    s5_test    = readr::read_csv(paste0(data_dir, "study5_test.csv")),
-    s5_summary = readr::read_csv(paste0(data_dir, "study5_summary.csv"))
+    s1_long    = readr::read_csv(file.path(data_dir, "study1_long.csv")),
+    s1_summary = readr::read_csv(file.path(data_dir, "study1_summary.csv")),
+    s2_long    = readr::read_csv(file.path(data_dir, "study2_long.csv")),
+    s2_summary = readr::read_csv(file.path(data_dir, "study2_summary.csv")),
+    s3_long    = readr::read_csv(file.path(data_dir, "study3_long.csv")),
+    s3_summary = readr::read_csv(file.path(data_dir, "study3_summary.csv")),
+    s4_long    = readr::read_csv(file.path(data_dir, "study4_long.csv")),
+    s4_test    = readr::read_csv(file.path(data_dir, "study4_test.csv")),
+    s4_summary = readr::read_csv(file.path(data_dir, "study4_summary.csv")),
+    s5_long    = readr::read_csv(file.path(data_dir, "study5_long.csv")),
+    s5_test    = readr::read_csv(file.path(data_dir, "study5_test.csv")),
+    s5_summary = readr::read_csv(file.path(data_dir, "study5_summary.csv"))
   )
 
   # Study 5 belt QC
-  qc_path <- paste0(data_dir, "qcFile.xlsx")
+  qc_path <- file.path(data_dir, "qcFile.xlsx")
   if (file.exists(qc_path)) {
     out$s5_qcFull    <- readxl::read_excel(qc_path, sheet = "FullResults")
     out$s5_qcSummary <- readxl::read_excel(qc_path, sheet = "ResultsSummary")
@@ -147,7 +147,7 @@ load_all_data <- function(data_dir = DATA_DIR) {
   }
 
   # HBD data
-  hbd_path <- paste0(data_dir, "heartbeat_detection_qc.csv")
+  hbd_path <- file.path(data_dir, "heartbeat_detection_qc.csv")
   if (file.exists(hbd_path)) {
     out$s5_hbd <- readr::read_csv(hbd_path) |>
       dplyr::mutate(
@@ -165,7 +165,7 @@ load_all_data <- function(data_dir = DATA_DIR) {
     warning("heartbeat_detection_qc.csv not found at: ", hbd_path)
   }
 
-  hbd_int_path <- paste0(data_dir, "heartbeat_detection_results.xlsx")
+  hbd_int_path <- file.path(data_dir, "heartbeat_detection_results.xlsx")
   if (file.exists(hbd_int_path)) {
     out$s5_hbd_intervals <- readxl::read_excel(hbd_int_path,
                                                 sheet = "IntervalResults") |>

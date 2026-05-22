@@ -112,11 +112,12 @@ det   <- readr::read_csv(file.path(RESULTS_DIR, "table_detection_change2.csv"))
 aro   <- readr::read_csv(file.path(RESULTS_DIR, "table_arousal.csv"))
 conv  <- readr::read_csv(file.path(RESULTS_DIR, "table_staircase_convergence.csv"))
 thr   <- readr::read_csv(file.path(RESULTS_DIR, "table_threshold_descriptives.csv"))
-dprime<- readr::read_csv(file.path(RESULTS_DIR, "table_test_dprime.csv"))
+dprime    <- readr::read_csv(file.path(RESULTS_DIR, "test_block_dprime_by_group.csv"))
+dprime_pc <- readr::read_csv(file.path(RESULTS_DIR, "test_block_accuracy_descriptives.csv"))
 rel   <- readr::read_csv(file.path(RESULTS_DIR, "table_reliability.csv"))
 belt  <- readr::read_csv(file.path(RESULTS_DIR, "table_belt_physio_arousal.csv"))
-pcor  <- readr::read_csv(file.path(RESULTS_DIR, "s8_partial_correlations.csv"))
-mlm   <- readr::read_csv(file.path(RESULTS_DIR, "s8_multilevel_confidence_results.csv"))
+pcor  <- readr::read_csv(file.path(RESULTS_DIR, "s7_partial_correlations.csv"))
+mlm   <- readr::read_csv(file.path(RESULTS_DIR, "s7_multilevel_confidence_results.csv"))
 id4   <- readr::read_csv(file.path(RESULTS_DIR, "id_correlations_study4.csv"))
 id5   <- readr::read_csv(file.path(RESULTS_DIR, "id_correlations_study5.csv"))
 val   <- readr::read_csv(file.path(RESULTS_DIR, "table_validation.csv"))
@@ -333,43 +334,77 @@ make_st4 <- function(df) {
 }
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ST5: Test Block d' (Studies 4 and 5)
+# ST5: Test Block d' (Studies 4 and 5) — direction-stratified
 # ══════════════════════════════════════════════════════════════════════════════
 
 build_st5 <- function() {
-  dprime |>
+  cond_labels <- c(
+    S4_Breath       = "Study 4 / Breath",
+    S4_Visual       = "Study 4 / Visual",
+    S5_ses1_Breath  = "Study 5 / ses1 Breath",
+    S5_ses1_Visual  = "Study 5 / ses1 Visual",
+    S5_ses2_Breath  = "Study 5 / ses2 Breath"
+  )
+  
+  # Coerce join keys to character in both tables to avoid factor mismatch.
+  # Drop n_trials/n_pp/Pc from dprime first so the join works whether or not
+  # test_block_accuracy.R has already embedded them in the CSV.
+  dprime_clean <- dprime |>
+    dplyr::mutate(dplyr::across(c(ses_cond_f, salience_f, direction_f), as.character)) |>
+    dplyr::select(-dplyr::any_of(c("n_trials", "n_pp", "Pc")))
+  
+  pc_clean <- dprime_pc |>
+    dplyr::mutate(dplyr::across(c(ses_cond_f, salience_f, direction_f), as.character)) |>
+    dplyr::select(ses_cond_f, salience_f, direction_f, n_trials, n_pp, Pc)
+  
+  dprime_clean |>
+    dplyr::left_join(pc_clean, by = c("ses_cond_f", "salience_f", "direction_f")) |>
+    dplyr::mutate(
+      Condition = dplyr::recode(ses_cond_f, !!!cond_labels),
+      Condition = factor(Condition, levels = unname(cond_labels))
+    ) |>
+    dplyr::arrange(Condition, salience_f, direction_f) |>
     dplyr::transmute(
-      Study    = study,
-      Group    = group,
-      Salience = salience,
-      N_trials = as.character(n_trials),
-      N_ppts   = as.character(n_participants),
-      Pc       = formatC(Pc, digits = 3, format = "f"),
-      dprime   = formatC(dprime_3afc, digits = 2, format = "f")
+      Condition = as.character(Condition),
+      Salience  = salience_f,
+      Direction = direction_f,
+      N_trials  = as.character(n_trials),
+      N_ppts    = as.character(n),
+      Pc        = formatC(Pc,          digits = 3, format = "f"),
+      dprime    = formatC(mean_dprime, digits = 2, format = "f"),
+      dprime_sd = formatC(sd_dprime,   digits = 2, format = "f")
     )
 }
 
 make_st5 <- function(df) {
-  breaks <- which(df$Study != dplyr::lag(df$Study, default = ""))[-1] - 1
+  # Thin rule between conditions
+  cond_breaks <- which(df$Condition != dplyr::lag(df$Condition,
+                                                  default = ""))[-1] - 1
   
   ft <- flextable(df) |>
     set_header_labels(
-      Study = "Study", Group = "Group", Salience = "Salience",
-      N_trials = "N trials", N_ppts = "N participants",
-      Pc = "P(correct)", dprime = "d'"
+      Condition = "Condition",
+      Salience  = "Salience",
+      Direction = "Direction",
+      N_trials  = "N trials",
+      N_ppts    = "N participants",
+      Pc        = "P(correct)",
+      dprime    = "d\u2019",
+      dprime_sd = "SD(d\u2019)"
     ) |>
-    merge_v(j = c("Study","Group")) |>
-    valign(j = c("Study","Group"), valign = "top", part = "body") |>
-    width(j = "Study",    width = 0.7) |>
-    width(j = "Group",    width = 0.8) |>
-    width(j = "Salience", width = 0.75) |>
-    width(j = "N_trials", width = 0.75) |>
-    width(j = "N_ppts",   width = 1.1) |>
-    width(j = "Pc",       width = 0.9) |>
-    width(j = "dprime",   width = 0.65) |>
+    merge_v(j = c("Condition", "Salience")) |>
+    valign(j = c("Condition", "Salience"), valign = "top", part = "body") |>
+    width(j = "Condition",  width = 1.35) |>
+    width(j = "Salience",   width = 0.70) |>
+    width(j = "Direction",  width = 0.75) |>
+    width(j = "N_trials",   width = 0.65) |>
+    width(j = "N_ppts",     width = 1.00) |>
+    width(j = "Pc",         width = 0.80) |>
+    width(j = "dprime",     width = 0.55) |>
+    width(j = "dprime_sd",  width = 0.65) |>
     apa7_style()
   
-  for (i in breaks) ft <- thin_rule(ft, i)
+  for (i in cond_breaks) ft <- thin_rule(ft, i)
   ft
 }
 
@@ -693,14 +728,16 @@ doc <- officer::read_docx() |>
   
   add_table_block(
     "Table ST5",
-    "Test Block Detection Sensitivity (d') by Salience Condition",
+    "Test Block Detection Sensitivity (d\u2019) by Condition, Salience, and Direction",
     make_st5(st5_df),
     paste0(
-      "d' computed via numerical inversion of the unbiased 3AFC operating characteristic. ",
-      "The fixed-level test block was administered at each participant\u2019s individually ",
-      "estimated high-salience staircase threshold. ",
-      "High-salience d' matched the Quest target (\u22481.50 / 75\u0025 correct) in both studies. ",
-      "Lower d' on low-salience trials is expected as the threshold was calibrated for high salience."
+      "d\u2019 computed via numerical inversion of the unbiased 3AFC operating characteristic; ",
+      "SD(d\u2019) = within-condition standard deviation across participants. ",
+      "Test block thresholds were set separately per direction as the mean of the ",
+      "high- and low-salience staircase estimates for that direction. ",
+      "High-salience d\u2019 approximates the Quest target (\u22481.50 / 75% correct) in most conditions. ",
+      "ses1 = Session 1; ses2 = Session 2 (Study 5 only; all participants completed Breath condition). ",
+      "Study 4 Visual group was absent from prior versions of this table and has been restored."
     )
   ) |>
   

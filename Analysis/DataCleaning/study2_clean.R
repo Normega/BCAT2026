@@ -24,8 +24,8 @@ for (thispack in packages) {
 # ============================================================
 # 1. Load Raw Data
 # ============================================================
-raw  <- read_excel(paste0(raw_dir, "study2_taskdata.xls"), col_types = "text")
-demo <- read_excel(paste0(raw_dir, "study2_questionnairedata.xlsx"))
+raw  <- read_excel(file.path(raw_dir, "study2_taskdata.xls"), col_types = "text")
+demo <- read_excel(file.path(raw_dir, "study2_questionnairedata.xlsx"))
 
 # Coerce numeric columns
 num_cols <- c("Arousal", "Confidence", "DetectACC", "TotalRateChange",
@@ -253,9 +253,9 @@ summary_out <- summary_df |>
 # ============================================================
 # 6. Write Outputs
 # ============================================================
-write_csv(long_out,      paste0(data_dir, "study2_long.csv"))
-write_csv(summary_out,   paste0(data_dir, "study2_summary.csv"))
-write_csv(exclusion_log, paste0(data_dir, "study2_exclusions.csv"))
+write_csv(long_out,      file.path(data_dir, "study2_long.csv"))
+write_csv(summary_out,   file.path(data_dir, "study2_summary.csv"))
+write_csv(exclusion_log, file.path(data_dir, "study2_exclusions.csv"))
 
 message("Study 2 cleaning complete.")
 message("  Long:       ", nrow(long_out),    " rows")

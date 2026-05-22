@@ -54,9 +54,9 @@ for (thispack in packages) {
 # ============================================================
 # 1. Load Raw Data
 # ============================================================
-staircase  <- read_csv(paste0(raw_dir, "study5_longData.csv"))
-test_phase <- read_csv(paste0(raw_dir, "study5_testData.csv"))
-quest      <- read_csv(paste0(raw_dir, "study5_questionnairedata.csv"))
+staircase  <- read_csv(file.path(raw_dir, "study5_longData.csv"))
+test_phase <- read_csv(file.path(raw_dir, "study5_testData.csv"))
+quest      <- read_csv(file.path(raw_dir, "study5_questionnairedata.csv"))
 
 # Rename questionnaire columns to canonical cross-study names.
 # The rescored CSV uses abbreviated names; map to the standard schema.
@@ -368,10 +368,10 @@ message("Summary rows: ", nrow(summary_df), " (expect 206)")
 # ============================================================
 # 5. Write Outputs
 # ============================================================
-write_csv(long,          paste0(data_dir, "study5_long.csv"))
-write_csv(test_out,      paste0(data_dir, "study5_test.csv"))
-write_csv(summary_df,    paste0(data_dir, "study5_summary.csv"))
-write_csv(exclusion_log, paste0(data_dir, "study5_exclusions.csv"))
+write_csv(long,          file.path(data_dir, "study5_long.csv"))
+write_csv(test_out,      file.path(data_dir, "study5_test.csv"))
+write_csv(summary_df,    file.path(data_dir, "study5_summary.csv"))
+write_csv(exclusion_log, file.path(data_dir, "study5_exclusions.csv"))
 
 message("\nStudy 5 cleaning complete.")
 message("  Staircase long: ", nrow(long),      " rows")
