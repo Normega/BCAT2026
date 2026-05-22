@@ -5,18 +5,18 @@ This repository contains analysis code for a five-study empirical paper
 investigating whether conscious detection of breathing changes is required
 for those changes to influence subjective arousal.
 
-**Preregistration (Study 5):** https://bit.ly/436SSrv
+**Preregistration (Study 5):** https://osf.io/r6zja/overview?view_only=4edce0bc913947d3a8491bfbdeb0deb3
 
-**OSF archive (data, RDS objects, trial by trial QC files):** https://bit.ly/4txemZy
+**OSF archive (data, RDS objects, trial by trial QC files):** https://osf.io/g7rdb/overview?view_only=00d7f593dad94c3b9c4c34b994b8c162
 
-**Task code (Studies 1–5):** https://github.com/Normega/BCAT2026-Tasks
+**Task code (Studies 1–5):** https://anonymous.4open.science/r/BCAT2026-Tasks-9B85/
 
 ---
 
 ## Replication instructions
 
 1. Clone this repository.
-2. Download the `Data/` directory from the OSF archive (https://bit.ly/4txemZy)
+2. Download the `Data/` directory from the OSF archive (https://osf.io/g7rdb/overview?view_only=00d7f593dad94c3b9c4c34b994b8c162)
    and place it in the base directory of the repository.
 3. Open R, set the working directory to the repository root, and run:
 
@@ -131,7 +131,7 @@ in the summary CSVs.
 ## Deviations from preregistration
 
 Deviations from the Study 5 preregistration are documented in the
-Supplementary Materials, available on the OSF archive: https://bit.ly/4txemZy
+Supplementary Materials, available on the OSF archive: https://osf.io/g7rdb/overview?view_only=00d7f593dad94c3b9c4c34b994b8c162
 
 ---
 
