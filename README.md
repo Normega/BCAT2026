@@ -15,14 +15,68 @@ for those changes to influence subjective arousal.
 
 ## Replication instructions
 
-1. Clone this repository.
-2. Download the `Data/` directory from the OSF archive (https://osf.io/g7rdb/overview?view_only=00d7f593dad94c3b9c4c34b994b8c162)
-   and place it in the base directory of the repository.
-3. Open R, set the working directory to the repository root, and run:
+### Step 1 — Download the code and data
+
+- Download or clone this repository. You should end up with a folder on your
+  computer called `BCAT2026` (or whatever you name it). Inside it you will see
+  an `Analysis/` subfolder.
+- Download the `Data/` folder from the OSF archive
+  (https://osf.io/g7rdb/overview?view_only=00d7f593dad94c3b9c4c34b994b8c162)
+  and place it inside the same root folder, alongside `Analysis/`.
+
+When set up correctly your folder should look like this:
+
+```
+BCAT2026/          ← this is your root folder (it can be named anything)
+├── Analysis/
+└── Data/
+```
+
+### Step 2 — Tell the script where to find your files
+
+Open `Analysis/MainAnalysis.R` in RStudio (or any text editor). Near the top
+you will find this line:
+
+```r
+BASE_DIR <- "."
+```
+
+Replace `"."` with the full path to your root folder. For example:
+
+- **Windows:** `BASE_DIR <- "C:/Users/YourName/Documents/BCAT2026"`
+- **Mac/Linux:** `BASE_DIR <- "/Users/YourName/Documents/BCAT2026"`
+
+**How to find your path:**
+- *Windows:* Open the root folder in File Explorer, click in the address bar at
+  the top, and copy the path shown. Replace any backslashes (`\`) with forward
+  slashes (`/`).
+- *Mac:* Right-click the root folder in Finder, hold the Option key, and choose
+  "Copy … as Pathname".
+- *RStudio shortcut:* Open any file inside the root folder in RStudio, then run
+  `dirname(dirname(rstudioapi::getActiveDocumentContext()$path))` in the Console
+  to print the path automatically.
+
+**How to confirm everything is in the right place:**
+After setting `BASE_DIR`, run these two lines in the R Console and confirm both
+print `TRUE`:
+
+```r
+file.exists(file.path(BASE_DIR, "Analysis", "MainAnalysis.R"))
+file.exists(file.path(BASE_DIR, "Data"))
+```
+
+If either prints `FALSE`, double-check that `Analysis/` and `Data/` are both
+inside the folder you used for `BASE_DIR`.
+
+### Step 3 — Run the analysis
+
+With `BASE_DIR` set correctly, run the full script from the R Console:
 
 ```r
 source("Analysis/MainAnalysis.R")
 ```
+
+Or open `Analysis/MainAnalysis.R` in RStudio and click **Source**.
 
 `MainAnalysis.R` runs all five studies in order, writes result CSVs to
 `Results/`, generates all manuscript figures to `Figures/`, and builds
