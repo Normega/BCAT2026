@@ -17,12 +17,24 @@ for those changes to influence subjective arousal.
 
 ### Step 1 — Download the code and data
 
-- Download or clone this repository. You should end up with a folder on your
-  computer called `BCAT2026` (or whatever you name it). Inside it you will see
-  an `Analysis/` subfolder.
-- Download the `Data/` folder from the OSF archive
-  (https://osf.io/g7rdb/overview?view_only=00d7f593dad94c3b9c4c34b994b8c162)
-  and place it inside the same root folder, alongside `Analysis/`.
+**1a. Download this repository**
+
+Click the green **Code** button at the top of this GitHub page and choose
+**Download ZIP**. Unzip it somewhere convenient (e.g. your Documents folder).
+You should now have a folder — call it your *root folder* — that contains an
+`Analysis/` subfolder.
+
+**1b. Download the Data folder from OSF**
+
+1. Go to: https://osf.io/g7rdb/files/osfstorage?view_only=00d7f593dad94c3b9c4c34b994b8c162
+2. You will see a file browser listing the project files. Find the **`Data`**
+   folder in the list.
+3. Click the **three dots (⋯)** to the right of the `Data` folder and choose
+   **Download as zip**.
+4. Once downloaded, unzip it. You should get a folder called `Data` containing
+   CSV files.
+5. Move or copy the `Data` folder into your root folder (the same folder that
+   contains `Analysis/`).
 
 When set up correctly your folder should look like this:
 
