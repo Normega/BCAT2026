@@ -1,4 +1,5 @@
-# Output files — stored on OSF, not in git
+# Files stored on OSF, not in git
+Data/
 Results/
 Figures/
 Tables/
