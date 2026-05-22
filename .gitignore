@@ -4,6 +4,9 @@ Results/
 Figures/
 Tables/
 
+# Task code — separate repo: https://github.com/Normega/BCAT2026-Tasks
+Tasks/
+
 # R session artifacts
 .Rhistory
 .RData
