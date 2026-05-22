@@ -37,6 +37,8 @@ RESULTS_DIR <- file.path(BASE_DIR, "Results")
 RDS_DIR <- file.path(RESULTS_DIR, "Models", "TestRDS")
 FIGURES_DIR <- file.path(BASE_DIR, "Figures")
 dir.create(RESULTS_DIR, showWarnings = FALSE, recursive = TRUE)
+dir.create(RDS_DIR, showWarnings = FALSE, recursive = TRUE)
+dir.create(FIGURES_DIR, showWarnings = FALSE, recursive = TRUE)
 
 # ============================================================
 # 1. LOAD AND HARMONIZE DATA
