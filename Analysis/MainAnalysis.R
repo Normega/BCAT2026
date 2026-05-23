@@ -308,7 +308,10 @@ source(file.path(ANALYSIS_DIR, "fig_accuracy.R"))
 source(file.path(ANALYSIS_DIR, "fig_arousal.R"))
 source(file.path(ANALYSIS_DIR, "fig_regime_comparison.R"))
 
-
+# Tables
+source(file.path(ANALYSIS_DIR, "Build_Main_Tables.R"))
+source(file.path(ANALYSIS_DIR, "Build_Reliability_Tables.R"))
+source(file.path(ANALYSIS_DIR, "Build_Supplementary_Tables.R"))
 
 # ── Zip all results ───────────────────────────────────────────
 result_files <- list.files(RESULTS_DIR, pattern = "\\.csv$", full.names = TRUE)
