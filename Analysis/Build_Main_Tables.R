@@ -11,14 +11,6 @@
 # ============================================================
 
 # Set Up ---------
-## Load libraries ---------
-packages <- c("tidyverse", "flextable", "officer")
-new_packages <- packages[!sapply(packages, requireNamespace, quietly = TRUE)]
-if (length(new_packages)) install.packages(new_packages)
-options(readr.show_col_types = FALSE)
-for (thispack in packages) {
-  library(thispack, character.only = TRUE, quietly = TRUE, verbose = FALSE)
-}
 
 # ── Config ────────────────────────────────────────────────────────────────────
 FONT     <- "Times New Roman"

@@ -9,17 +9,6 @@
 # Forest plot: partial r of Change on Accuracy per study (GLM-derived).
 
 # Set Up ---------
-## Load libraries ---------
-packages <- c("tidyverse", "lme4", "lmerTest", "ggeffects", "patchwork")
-new_packages <- packages[!sapply(packages, requireNamespace, quietly = TRUE)]
-if (length(new_packages)) install.packages(new_packages)
-options(readr.show_col_types = FALSE)
-for (thispack in packages) {
-  library(thispack, character.only = TRUE, quietly = TRUE, verbose = FALSE)
-}
-
-DDIR    <- file.path(BASE_DIR,"Data")
-FIG_DIR <- file.path(BASE_DIR,"Figures")
 
 ctrl     <- lmerControl(optimizer = "bobyqa")
 
@@ -182,12 +171,12 @@ make_acc_panel_sal <- function(df, title, subtitle = NULL,
 }
 
 # ── Load data ────────────────────────────────────────────────────────────────
-s1l <- readr::read_csv(file.path(DDIR, "study1_long.csv")) |>
+s1l <- readr::read_csv(file.path(DATA_DIR, "study1_long.csv")) |>
   dplyr::filter(Group == "TaskA")
-s2l <- readr::read_csv(file.path(DDIR, "study2_long.csv"))
-s3l <- readr::read_csv(file.path(DDIR, "study3_long.csv"))
-s4l <- readr::read_csv(file.path(DDIR, "study4_long.csv"))
-s5l <- readr::read_csv(file.path(DDIR, "study5_long.csv"))
+s2l <- readr::read_csv(file.path(DATA_DIR, "study2_long.csv"))
+s3l <- readr::read_csv(file.path(DATA_DIR, "study3_long.csv"))
+s4l <- readr::read_csv(file.path(DATA_DIR, "study4_long.csv"))
+s5l <- readr::read_csv(file.path(DATA_DIR, "study5_long.csv"))
 
 # ── Build panels ─────────────────────────────────────────────────────────────
 p1 <- make_acc_panel(s1l,

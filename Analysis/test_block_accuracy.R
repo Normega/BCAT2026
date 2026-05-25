@@ -22,24 +22,8 @@
 # Assumes BASE_DIR is set in environment (e.g. from MainAnalysis.R).
 # Sources utils.R for compute_test_dprime_3afc() and dprime_from_pc().
 
-# Set Up ---------
-packages <- c("tidyverse", "lme4", "lmerTest", "broom.mixed", "patchwork")
-new_packages <- packages[!sapply(packages, requireNamespace, quietly = TRUE)]
-if (length(new_packages)) install.packages(new_packages)
-options(readr.show_col_types = FALSE)
-for (thispack in packages) {
-  library(thispack, character.only = TRUE, quietly = TRUE, verbose = FALSE)
-}
-
-# Paths ---------
-DATA_DIR    <- file.path(BASE_DIR, "Data")
-RESULTS_DIR <- file.path(BASE_DIR, "Results")
-FIGURES_DIR <- file.path(BASE_DIR, "Figures")
-dir.create(RESULTS_DIR, showWarnings = FALSE, recursive = TRUE)
-dir.create(FIGURES_DIR, showWarnings = FALSE, recursive = TRUE)
-
 # Source utils.R for shared helpers (%||%, apply_bh_correction, etc.)
-source(file.path(BASE_DIR, "Analysis", "utils.R"))
+source(file.path(ANALYSIS_DIR, "utils.R"))
 
 # d' for 3AFC (exact numerical integration, matches compute_test_dprime_3afc
 # in utils.R -- redefined here because dprime_from_pc is a local closure there)

@@ -16,17 +16,6 @@
 # Linetype: Direction — Faster = solid, Slower = dashed
 
 # Set Up ---------
-## Load libraries ---------
-packages <- c("tidyverse", "patchwork")
-new_packages <- packages[!sapply(packages, requireNamespace, quietly = TRUE)]
-if (length(new_packages)) install.packages(new_packages)
-options(readr.show_col_types = FALSE)
-for (thispack in packages) {
-  library(thispack, character.only = TRUE, quietly = TRUE, verbose = FALSE)
-}
-
-DDIR    <- file.path(BASE_DIR,"Data")
-FIG_DIR <- file.path(BASE_DIR,"Figures")
 
 # ── Colour / linetype palette ────────────────────────────────────────────────
 col_high <- "#E69F00"   # High salience (orange)
@@ -65,7 +54,7 @@ prep_staircase <- function(df, group_cols = character(0), max_trials = Inf) {
 
 # Study 1A: single staircase, no salience / direction split
 # Use abs(Change) as staircase level; filter to change trials only
-s1_raw <- readr::read_csv(file.path(DDIR, "study1_long.csv")) |>
+s1_raw <- readr::read_csv(file.path(DATA_DIR, "study1_long.csv")) |>
   dplyr::filter(Group == "TaskA",
                 Direction %in% c("Faster", "Slower")) |>
   dplyr::mutate(abs_level   = abs(Change),
@@ -74,7 +63,7 @@ s1_raw <- readr::read_csv(file.path(DDIR, "study1_long.csv")) |>
 s1_traj <- prep_staircase(s1_raw)
 
 # Study 2: single staircase
-s2_raw <- readr::read_csv(file.path(DDIR, "study2_long.csv")) |>
+s2_raw <- readr::read_csv(file.path(DATA_DIR, "study2_long.csv")) |>
   dplyr::filter(Direction %in% c("Faster", "Slower")) |>
   dplyr::mutate(abs_level   = abs(Change),
                 trial_order = TrialNum)
@@ -82,7 +71,7 @@ s2_raw <- readr::read_csv(file.path(DDIR, "study2_long.csv")) |>
 s2_traj <- prep_staircase(s2_raw)
 
 # Study 4: column is capitalised as "Level"
-s4_df  <- readr::read_csv(file.path(DDIR, "study4_long.csv"))
+s4_df  <- readr::read_csv(file.path(DATA_DIR, "study4_long.csv"))
 s4_raw <- s4_df |>
   dplyr::filter(Direction %in% c("Faster", "Slower"), !is.na(Salience)) |>
   dplyr::mutate(
@@ -102,7 +91,7 @@ s4_traj <- prep_staircase(s4_raw, group_cols = c("Salience", "Direction"),
 # Visual-first group: first breath session = ses2
 # Without this filter, breath-first participants contribute 20 trials
 # (ses1 + ses2) per condition, pushing trial_n beyond 10.
-s5_df  <- readr::read_csv(file.path(DDIR, "study5_long.csv"))
+s5_df  <- readr::read_csv(file.path(DATA_DIR, "study5_long.csv"))
 s5_raw <- s5_df |>
   dplyr::filter(Condition == "breath",
                 Direction %in% c("Faster", "Slower"),

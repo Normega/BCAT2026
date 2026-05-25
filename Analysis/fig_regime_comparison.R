@@ -8,18 +8,6 @@
 # Studies: 1A, 2, 4, 5
 
 # Set Up ---------
-packages <- c("tidyverse", "patchwork")
-new_packages <- packages[!sapply(packages, requireNamespace, quietly = TRUE)]
-if (length(new_packages)) install.packages(new_packages)
-options(readr.show_col_types = FALSE)
-for (thispack in packages) {
-  library(thispack, character.only = TRUE, quietly = TRUE, verbose = FALSE)
-}
-
-# Paths ---------
-RESULTS_DIR <- file.path(BASE_DIR, "Results")
-FIGURES_DIR <- file.path(BASE_DIR, "Figures")
-dir.create(FIGURES_DIR, showWarnings = FALSE, recursive = TRUE)
 
 # ============================================================
 # 1. LOAD DATA
@@ -196,7 +184,7 @@ p_combined <- (p_hits / p_misses) +
 # 5. SAVE
 # ============================================================
 ggplot2::ggsave(
-  file.path(FIGURES_DIR, "figure_S_regime_comparison.pdf"),
+  file.path(FIG_DIR, "figure_S_regime_comparison.pdf"),
   p_combined,
   width  = 8,
   height = 9,
@@ -204,7 +192,7 @@ ggplot2::ggsave(
 )
 
 ggplot2::ggsave(
-  file.path(FIGURES_DIR, "figure_S_regime_comparison.png"),
+  file.path(FIG_DIR, "figure_S_regime_comparison.png"),
   p_combined,
   width  = 8,
   height = 9,
@@ -212,4 +200,4 @@ ggplot2::ggsave(
 )
 
 cat("Saved: figure_S_regime_comparison.pdf/.png\n")
-cat("Location:", FIGURES_DIR, "\n")
+cat("Location:", FIG_DIR, "\n")

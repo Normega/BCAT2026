@@ -4,17 +4,6 @@
 #   Row 2: Study 4 | Study 5 | Meta-analytic forest plot
 
 # Set Up ---------
-packages <- c("tidyverse", "lme4", "lmerTest", "ggeffects", "patchwork")
-new_packages <- packages[!sapply(packages, requireNamespace, quietly = TRUE)]
-if (length(new_packages)) install.packages(new_packages)
-options(readr.show_col_types = FALSE)
-for (thispack in packages) {
-  library(thispack, character.only = TRUE, quietly = TRUE, verbose = FALSE)
-}
-
-
-DDIR    <- file.path(BASE_DIR,"Data")
-FIG_DIR <- file.path(BASE_DIR,"Figures")
 
 ctrl <- lmerControl(optimizer = "bobyqa")
 
@@ -72,11 +61,11 @@ make_panel <- function(df, title, subtitle = NULL,
 
 # --- Load data --------------------------------------------------------------
 
-s1l <- read.csv(file.path(DDIR, "study1_long.csv"))
-s2l <- read.csv(file.path(DDIR, "study2_long.csv"))
-s3l <- read.csv(file.path(DDIR, "study3_long.csv"))
-s4l <- read.csv(file.path(DDIR, "study4_long.csv"))
-s5l <- read.csv(file.path(DDIR, "study5_long.csv"))
+s1l <- read.csv(file.path(DATA_DIR, "study1_long.csv"))
+s2l <- read.csv(file.path(DATA_DIR, "study2_long.csv"))
+s3l <- read.csv(file.path(DATA_DIR, "study3_long.csv"))
+s4l <- read.csv(file.path(DATA_DIR, "study4_long.csv"))
+s5l <- read.csv(file.path(DATA_DIR, "study5_long.csv"))
 
 # --- Build study panels -----------------------------------------------------
 

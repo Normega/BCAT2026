@@ -125,13 +125,24 @@
 
 # ── Packages ──────────────────────────────────────────────────
 packages <- c(
-  "mediation", "bridgesampling",
-  "tidyverse", "readxl", "lme4", "lmerTest",
-  "emmeans", "BayesFactor", 
-  "ppcor",
-  "broom.mixed",
-  "MuMIn", "irr", "metafor", "patchwork", "ggeffects",
-  "brms", "tidybayes"
+  # Data I/O
+  "tidyverse", "readxl",
+  # Mixed models
+  "lme4", "lmerTest",
+  # Model utilities
+  "emmeans", "broom.mixed", "MuMIn", "irr",
+  # Statistical tests
+  "BayesFactor", "ppcor", "car",
+  # Bayesian
+  "brms", "posterior",
+  # Meta-analysis
+  "metafor",
+  # Mediation
+  "mediation",
+  # Visualization
+  "patchwork", "ggeffects", "scales",
+  # Table building (Build_*.R files sourced below)
+  "flextable", "officer"
 )
 new_packages <- packages[!sapply(packages, requireNamespace, quietly = TRUE)]
 if (length(new_packages)) install.packages(new_packages)
@@ -268,7 +279,7 @@ source(file.path(ANALYSIS_DIR, "analysis_arousal.R"))
 # BF01 values reported in main text (Studies 1A, 2, 4, 5)
 # Creates: miss_baseline_bf.csv
 source(file.path(ANALYSIS_DIR, "analysis_miss_baseline.R"))
-source(file.path("test_block_arousal.R"))
+source(file.path(ANALYSIS_DIR, "test_block_arousal.R"))
 
 # Study 3 misattribution chain: Change -> Arousal -> Attraction
 # Creates: table_mediation.csv

@@ -10,15 +10,6 @@
 
 source(file.path(ANALYSIS_DIR, "theme_bcat.R"))
 
-packages <- c("tidyverse", "lme4", "lmerTest",
-              "BayesFactor", "broom.mixed", "MuMIn",
-              "corrplot", "patchwork")
-new_packages <- packages[!sapply(packages, requireNamespace, quietly = TRUE)]
-if (length(new_packages)) install.packages(new_packages)
-options(readr.show_col_types = FALSE)
-for (p in packages) library(p, character.only = TRUE, quietly = TRUE)
-
-
 s5e_fig_dir <- file.path(FIG_DIR, "Study5_Exploratory")
 dir.create(s5e_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
