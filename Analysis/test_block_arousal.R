@@ -17,34 +17,6 @@
 #   brms_arousal_indirect_draws.csv    — posterior draws for indirect arousal effect
 #   freq_vs_brms_key_terms.csv         — frequentist vs Bayesian key term comparison
 
-# Set Up ---------
-## Load libraries ---------
-packages <- c(
-  "tidyverse",
-  "lme4",
-  "lmerTest",
-  "car",
-  "ggeffects",
-  "BayesFactor",
-  "brms",
-  "posterior",
-  "tidybayes",
-  "broom.mixed"
-)
-new_packages <- packages[!sapply(packages, requireNamespace, quietly = TRUE)]
-if (length(new_packages)) install.packages(new_packages)
-options(readr.show_col_types = FALSE)
-for (thispack in packages) {
-  library(thispack, character.only = TRUE, quietly = TRUE, verbose = FALSE)
-}
-
-# Paths ---------
-DATA_DIR    <- file.path(BASE_DIR, "Data")
-RESULTS_DIR <- file.path(BASE_DIR, "Results")
-RDS_DIR <- file.path(BASE_DIR, "Results", "Models", "TestRDS")
-FIGURES_DIR <- file.path(BASE_DIR, "Figures")
-dir.create(RESULTS_DIR, showWarnings = FALSE, recursive = TRUE)
-
 # ============================================================
 # 1. LOAD AND HARMONIZE DATA
 # ============================================================
@@ -587,7 +559,7 @@ p_combined <- make_bar_plot("arousal",    "Arousal (1-6)",    "Arousal: Salience
   make_bar_plot("confidence", "Confidence (1-6)", "Confidence: Salience x Detection x Group")
 
 ggplot2::ggsave(
-  file.path(FIGURES_DIR, "test_block_arousal_confidence_group.png"),
+  file.path(FIG_DIR,"test_block_arousal_confidence_group.png"),
   p_combined, width = 10, height = 10, dpi = 300
 )
 
@@ -631,7 +603,7 @@ p_diff <- ggplot2::ggplot(
   ggplot2::theme_classic(base_size = 12)
 
 ggplot2::ggsave(
-  file.path(FIGURES_DIR, "brms_posterior_indirect_group.png"),
+  file.path(FIG_DIR,"brms_posterior_indirect_group.png"),
   p_posterior / p_diff, width = 8, height = 8, dpi = 300
 )
 
