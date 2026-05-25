@@ -20,6 +20,9 @@
 # Assumes in environment (from MainAnalysis.R):
 #   s1l, s2l, s4l, s5_long_breath
 #   RESULTS_DIR
+#
+# Output:
+#   miss_baseline_bf.csv — BF01 null tests per study (multilevel + person-level)
 # ============================================================
 
 

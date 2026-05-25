@@ -10,6 +10,19 @@
 #   run_h2_meta()       — H2: salience threshold (defined, not yet called)
 #   write_meta_results() — save CSVs
 #   plot_meta_figures()  — forest plots
+#
+# Outputs (CSVs):
+#   meta_h4b_study_estimates.csv   — per-study H4B partial r
+#   meta_h4b_pooled.csv            — pooled H4B random-effects estimate
+#   meta_h3_maia_dissociation.csv  — MAIA confidence vs threshold meta
+#   meta_h3_confidence_studies.csv — per-study MAIA-confidence estimates
+#   meta_h3_threshold_studies.csv  — per-study MAIA-threshold estimates
+#   meta_h1_direction_studies.csv  — per-study direction threshold estimates
+#   meta_h2_salience_studies.csv   — per-study salience threshold estimates
+#
+# Outputs (figures):
+#   MetaAnalysis/meta_h4b_forest.pdf          — H4B forest plot
+#   MetaAnalysis/meta_h3_maia_dissociation.pdf — MAIA dissociation forest plot
 # ============================================================
 
 meta_fig_dir <- file.path(FIG_DIR, "MetaAnalysis")

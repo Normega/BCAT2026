@@ -18,8 +18,6 @@
 #
 # Outputs:
 #   table_arousal.csv
-#   barrett_tce_disambiguation.csv
-#   meta_h4b_pooled.csv
 #   meta_h4b_sensitivity_noS3.csv
 #   table_h4c_exploratory.csv
 # ============================================================

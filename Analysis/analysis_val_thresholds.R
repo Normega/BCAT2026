@@ -29,7 +29,6 @@
 #   s4_test, s5_test
 #
 # Outputs:
-#   table_test_dprime.csv
 #   table_reliability.csv
 #   table_validation.csv
 # ============================================================

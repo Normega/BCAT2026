@@ -28,7 +28,6 @@
 #                                                    study2_convergence_elbow_summary.csv
 #   analysis_val_thresholds.R             — Supplement S1.5: thresholds, d', ICC (H1, H2, H5, H6)
 #                                           Creates: table_validation.csv,
-#                                                    table_test_dprime.csv,
 #                                                    table_reliability.csv,
 #                                                    table_threshold_descriptives.csv
 #   analysis_arousal.R                    — Awareness Gates Arousal Transfer (H4A, H4B, H4C)
@@ -257,7 +256,7 @@ source(file.path(ANALYSIS_DIR, "analysis_val_pilot_studies.R"))
 # Task Validation: thresholds, d', ICC (Supplement S1.4)
 # NOTE: requires analysis_val_detection.R to have run first
 #       (uses s{N}_det objects for table_validation.csv assembly)
-# Creates: table_validation.csv, table_test_dprime.csv, table_reliability.csv
+# Creates: table_validation.csv, table_reliability.csv
 # Creates env objects: s{N}_thresh, s{N}_conf, s{N}_maia — used by analysis_maia.R
 source(file.path(ANALYSIS_DIR, "analysis_val_thresholds.R"))
 

@@ -24,6 +24,7 @@
 #
 # Outputs:
 #   table_maia.csv
+#   table_maia_gating_moderation.csv
 #   table_threshold_descriptives.csv
 #   study4_bh_correction.csv
 #   study5_bh_correction.csv

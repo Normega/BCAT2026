@@ -8,6 +8,17 @@
 # M2: + fatigue covariates (sensitivity)
 # M3: + Salience (sensitivity)
 # Frequentist: mediation package. Bayesian: brms.
+#
+# Outputs:
+#   study3_mediation_primary.csv        — primary mediation (M0)
+#   study3_mediation_m1a_subset.csv     — M1a accuracy moderation (hit subset)
+#   study3_mediation_m1b_analytic.csv   — M1b analytic moderation
+#   study3_mediation_bayesian_m0.csv    — Bayesian M0 indirect effects
+#   study3_mediation_bayesian_m1.csv    — Bayesian M1 moderated mediation
+#   study3_maia_moderation_path_a.csv   — MAIA moderation of path a
+#   study3_maia_protection_acme.csv     — MAIA protection: ACME by group
+#   study3_maia_bayesian_moderation.csv — Bayesian MAIA moderation
+#   Figures/Study3/mediation_forest.pdf — mediation forest plot
 # ============================================================
 
 source(file.path(ANALYSIS_DIR, "theme_bcat.R"))

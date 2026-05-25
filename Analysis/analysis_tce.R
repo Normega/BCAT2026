@@ -29,6 +29,15 @@
 #   Studies 1A, 2 : % of baseline rate (larger numbers)
 #   Studies 4, 5  : signed decimal (negative = faster)
 # Compare direction and significance, not raw magnitude.
+#
+# Outputs:
+#   tce_primary_results.csv          — primary per-study hit/miss slopes
+#   barrett_tce_bayes.csv            — Bayesian null test (Barrett direction slopes)
+#   tce_sensitivity_regime.csv       — regime sensitivity (min 3 vs 6 trials)
+#   tce_sensitivity_matched.csv      — matched magnitude sensitivity
+#   tce_sensitivity_prior.csv        — prior sensitivity (r = 0.3, 0.5, 0.707)
+#   tce_sensitivity_consolidated.csv — all sensitivity checks combined
+#   s5_completer_check.csv           — Study 5 dropout bias check (ses1 completers vs non)
 # ============================================================
 
 # ── Per-person model extraction helper ────────────────────────
@@ -39,11 +48,11 @@
 # contribute valid estimates.
 
 .extract_pp_coefs <- function(data,
-                              change_col    = "Change",
-                              arousal_col   = "Arousal",
-                              id_col        = "id",
-                              min_trials_pp = 3) {
-  
+                               change_col    = "Change",
+                               arousal_col   = "Arousal",
+                               id_col        = "id",
+                               min_trials_pp = 3) {
+
   data |>
     dplyr::group_by(.data[[id_col]]) |>
     dplyr::group_map(function(g, key) {
@@ -51,18 +60,18 @@
       if (nrow(g) < min_trials_pp) return(NULL)
       x <- g[[change_col]]
       if (stats::sd(x, na.rm = TRUE) < 1e-10) return(NULL)
-      
+
       # M1: linear only
       m1 <- stats::lm(
         stats::as.formula(paste(arousal_col, "~", change_col)),
         data = g)
-      
+
       # M2: linear + quadratic
       g$Change2 <- x^2
       m2 <- stats::lm(
         stats::as.formula(paste(arousal_col, "~ Change +  Change2")),
         data = g)
-      
+
       tibble::tibble(
         b_change_m1  = stats::coef(m1)[[change_col]],
         b_change_m2  = stats::coef(m2)[["Change"]],
@@ -100,12 +109,12 @@
 # ── Main TCE function ──────────────────────────────────────────
 
 run_tce <- function(long_data,
-                    study_label,
-                    change_col    = "Change",
-                    arousal_col   = "Arousal",
-                    id_col        = "id",
-                    min_trials_pp = 3) {
-  
+                     study_label,
+                     change_col    = "Change",
+                     arousal_col   = "Arousal",
+                     id_col        = "id",
+                     min_trials_pp = 3) {
+
   base <- long_data |>
     dplyr::filter(
       Direction %in% c("Faster", "Slower"),
@@ -113,16 +122,16 @@ run_tce <- function(long_data,
       !is.na(.data[[change_col]]),
       !is.na(.data[[arousal_col]])
     )
-  
+
   hits   <- dplyr::filter(base, Accuracy == 1)
   misses <- dplyr::filter(base, Accuracy == 0)
-  
+
   purrr::map_dfr(
     list(list(data = hits, cond = "hits"),
          list(data = misses, cond = "misses")),
     function(a) {
       coefs <- .extract_pp_coefs(a$data, change_col, arousal_col,
-                                 id_col, min_trials_pp)
+                                  id_col, min_trials_pp)
       if (nrow(coefs) < 5) {
         message(sprintf("  [%s | %s] Too few participants — skipping",
                         study_label, a$cond))
@@ -147,8 +156,8 @@ run_tce <- function(long_data,
 # ── Bayesian t-test on per-person slopes ──────────────────────
 
 .test_slopes_bayes <- function(slopes, coef_name,
-                               study_label, condition_label,
-                               r_scale = 0.707) {
+                                study_label, condition_label,
+                                r_scale = 0.707) {
   slopes <- slopes[is.finite(slopes)] 
   if (length(slopes) < 5) return(NULL)
   bf_obj <- tryCatch(
@@ -186,12 +195,12 @@ run_tce <- function(long_data,
 }
 
 run_tce_bayes <- function(long_data, study_label,
-                          change_col    = "Change",
-                          arousal_col   = "Arousal",
-                          id_col        = "id",
-                          min_trials_pp = 3,
-                          r_scale       = 0.707) {
-  
+                            change_col    = "Change",
+                            arousal_col   = "Arousal",
+                            id_col        = "id",
+                            min_trials_pp = 3,
+                            r_scale       = 0.707) {
+
   base <- long_data |>
     dplyr::filter(
       Direction %in% c("Faster", "Slower"),
@@ -199,21 +208,21 @@ run_tce_bayes <- function(long_data, study_label,
       !is.na(.data[[change_col]]),
       !is.na(.data[[arousal_col]])
     )
-  
+
   purrr::map_dfr(
     list(list(data = dplyr::filter(base, Accuracy == 1), cond = "hits"),
          list(data = dplyr::filter(base, Accuracy == 0), cond = "misses")),
     function(a) {
       coefs <- .extract_pp_coefs(a$data, change_col, arousal_col,
-                                 id_col, min_trials_pp)
+                                  id_col, min_trials_pp)
       if (nrow(coefs) < 5) return(NULL)
       dplyr::bind_rows(
         .test_slopes_bayes(coefs$b_change_m1,  "b_change_M1",
-                           study_label, a$cond, r_scale),
+                            study_label, a$cond, r_scale),
         .test_slopes_bayes(coefs$b_change_m2,  "b_change_M2",
-                           study_label, a$cond, r_scale),
+                            study_label, a$cond, r_scale),
         .test_slopes_bayes(coefs$b_change2_m2, "b_change2_M2",
-                           study_label, a$cond, r_scale)
+                            study_label, a$cond, r_scale)
       )
     }
   )
@@ -327,10 +336,10 @@ message("Saved: tce_sensitivity_regime.csv")
 message("\n--- Sensitivity Check 2: Matched magnitude ---")
 
 .run_tce_matched <- function(long_data, study_label,
-                             change_col  = "Change",
-                             arousal_col = "Arousal",
-                             id_col      = "id") {
-  
+                               change_col  = "Change",
+                               arousal_col = "Arousal",
+                               id_col      = "id") {
+
   base <- long_data |>
     dplyr::filter(
       Direction %in% c("Faster", "Slower"),
@@ -339,17 +348,17 @@ message("\n--- Sensitivity Check 2: Matched magnitude ---")
       !is.na(.data[[arousal_col]])
     ) |>
     dplyr::mutate(abs_change = abs(.data[[change_col]]))
-  
+
   hits_range   <- range(base$abs_change[base$Accuracy == 1], na.rm = TRUE)
   misses_range <- range(base$abs_change[base$Accuracy == 0], na.rm = TRUE)
   lo <- max(hits_range[1], misses_range[1])
   hi <- min(hits_range[2], misses_range[2])
-  
+
   matched  <- dplyr::filter(base, abs_change >= lo, abs_change <= hi)
   pct_ret  <- round(nrow(matched) / nrow(base) * 100, 1)
   message(sprintf("  [%s] Matched range: [%.3f, %.3f], %.1f%% retained",
                   study_label, lo, hi, pct_ret))
-  
+
   purrr::map_dfr(
     list(list(acc = 1, cond = "hits"),
          list(acc = 0, cond = "misses")),
@@ -396,7 +405,7 @@ prior_results <- purrr::map_dfr(studies, function(s) {
       Direction %in% c("Faster", "Slower"),
       !is.na(Accuracy), !is.na(Change), !is.na(Arousal)
     )
-  
+
   purrr::map_dfr(
     list(list(data = dplyr::filter(base, Accuracy == 1), cond = "hits"),
          list(data = dplyr::filter(base, Accuracy == 0), cond = "misses")),
@@ -406,9 +415,9 @@ prior_results <- purrr::map_dfr(studies, function(s) {
       purrr::map_dfr(c(0.3, 0.5, 0.707), function(r) {
         dplyr::bind_rows(
           .test_slopes_bayes(coefs$b_change_m1,  "b_change_M1",
-                             s$label, a$cond, r),
+                              s$label, a$cond, r),
           .test_slopes_bayes(coefs$b_change2_m2, "b_change2_M2",
-                             s$label, a$cond, r)
+                              s$label, a$cond, r)
         )
       })
     }
@@ -471,7 +480,7 @@ message("STUDY 5 COMPLETER CHECK (ses1 only)")
 message("========================================")
 
 ctrl <- lme4::lmerControl(optimizer = "bobyqa",
-                          optCtrl = list(maxfun = 2e5))
+                           optCtrl = list(maxfun = 2e5))
 
 # ── 1. Flag completers from ses2 presence ────────────────────
 completers <- s5l |>
@@ -522,7 +531,7 @@ ttest_results <- purrr::map_dfr(
       df        = round(tt$parameter, 1),
       p         = round(tt$p.value,   4),
       cohens_d  = round((mean(comp) - mean(noncomp)) /
-                          sqrt((sd(comp)^2 + sd(noncomp)^2) / 2), 3)
+                    sqrt((sd(comp)^2 + sd(noncomp)^2) / 2), 3)
     )
   }
 )

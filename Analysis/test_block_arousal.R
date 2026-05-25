@@ -9,8 +9,41 @@
 #   (2) Salience effect after conditioning on hit/miss
 #   (3) Mediation: salience -> detection -> arousal (frequentist + brms)
 #   (4) Group interactions: does salience x accuracy pattern differ by Breath vs Visual?
+#
+# Outputs:
+#   test_block_all_models.csv          — pooled LMM fixed effects (arousal + confidence)
+#   frequentist_mediation_by_group.csv — frequentist mediation by group
+#   brms_indirect_by_group.csv         — Bayesian indirect effects by group
+#   brms_arousal_indirect_draws.csv    — posterior draws for indirect arousal effect
+#   freq_vs_brms_key_terms.csv         — frequentist vs Bayesian key term comparison
 
 # Set Up ---------
+## Load libraries ---------
+packages <- c(
+  "tidyverse",
+  "lme4",
+  "lmerTest",
+  "car",
+  "ggeffects",
+  "BayesFactor",
+  "brms",
+  "posterior",
+  "tidybayes",
+  "broom.mixed"
+)
+new_packages <- packages[!sapply(packages, requireNamespace, quietly = TRUE)]
+if (length(new_packages)) install.packages(new_packages)
+options(readr.show_col_types = FALSE)
+for (thispack in packages) {
+  library(thispack, character.only = TRUE, quietly = TRUE, verbose = FALSE)
+}
+
+# Paths ---------
+DATA_DIR    <- file.path(BASE_DIR, "Data")
+RESULTS_DIR <- file.path(BASE_DIR, "Results")
+RDS_DIR <- file.path(BASE_DIR, "Results", "Models", "TestRDS")
+FIGURES_DIR <- file.path(BASE_DIR, "Figures")
+dir.create(RESULTS_DIR, showWarnings = FALSE, recursive = TRUE)
 
 # ============================================================
 # 1. LOAD AND HARMONIZE DATA
@@ -554,7 +587,7 @@ p_combined <- make_bar_plot("arousal",    "Arousal (1-6)",    "Arousal: Salience
   make_bar_plot("confidence", "Confidence (1-6)", "Confidence: Salience x Detection x Group")
 
 ggplot2::ggsave(
-  file.path(FIG_DIR, "test_block_arousal_confidence_group.png"),
+  file.path(FIGURES_DIR, "test_block_arousal_confidence_group.png"),
   p_combined, width = 10, height = 10, dpi = 300
 )
 
@@ -598,12 +631,184 @@ p_diff <- ggplot2::ggplot(
   ggplot2::theme_classic(base_size = 12)
 
 ggplot2::ggsave(
-  file.path(FIG_DIR, "brms_posterior_indirect_group.png"),
+  file.path(FIGURES_DIR, "brms_posterior_indirect_group.png"),
   p_posterior / p_diff, width = 8, height = 8, dpi = 300
 )
 
 # ============================================================
-# 10. SAVE ALL RESULTS
+# 10. STRATIFIED ANALYSES: STUDY 4 AND STUDY 5 SESSIONS
+# ============================================================
+# Study 4: between-group design (Breath vs Visual), single session.
+# Study 5: within-participant session structure:
+#   ses1 = Breath OR Visual condition (between-group assignment)
+#   ses2 = all participants do Breath
+# Goal: confirm pooled estimates replicate within each study and session,
+# and test condition x session interaction within Study 5.
+
+# ── 10a. Study 4 stratified ─────────────────────────────────
+test_s4 <- dplyr::filter(test, study == "S4")
+
+# Arousal and confidence: salience x accuracy x group (three-way)
+m_s4_arousal <- lmerTest::lmer(
+  arousal ~ salience_f * accuracy_f * group_f + (1 | id),
+  data = test_s4, REML = FALSE, control = lmer_ctrl
+)
+m_s4_conf <- lmerTest::lmer(
+  confidence ~ salience_f * accuracy_f * group_f + (1 | id),
+  data = test_s4, REML = FALSE, control = lmer_ctrl
+)
+cat("\n--- Study 4: Three-way (arousal) ---\n"); print(summary(m_s4_arousal)$coefficients)
+cat("\n--- Study 4: Three-way (confidence) ---\n"); print(summary(m_s4_conf)$coefficients)
+
+# Simple effects within each S4 group (mirrors main analysis structure)
+s4_simple <- purrr::map_dfr(
+  c("Breath", "Visual"),
+  function(grp) {
+    df_g <- dplyr::filter(test_s4, group_f == grp)
+    ma <- lmerTest::lmer(
+      arousal ~ salience_f * accuracy_f + (1 | id),
+      data = df_g, REML = FALSE, control = lmer_ctrl
+    )
+    mc <- lmerTest::lmer(
+      confidence ~ salience_f * accuracy_f + (1 | id),
+      data = df_g, REML = FALSE, control = lmer_ctrl
+    )
+    dplyr::bind_rows(
+      broom.mixed::tidy(ma, effects = "fixed") |>
+        dplyr::mutate(study = "S4", group = grp, outcome = "arousal"),
+      broom.mixed::tidy(mc, effects = "fixed") |>
+        dplyr::mutate(study = "S4", group = grp, outcome = "confidence")
+    )
+  }
+)
+cat("\n--- Study 4 simple effects by group ---\n"); print(s4_simple)
+
+# ── 10b. Study 5: session-specific analysis ─────────────────
+test_s5 <- dplyr::filter(test, study == "S5")
+
+# Derive original group assignment from each participant's ses1 condition.
+# In ses2 all participants do Breath, so group_f == "Breath" for all ses2 rows.
+# original_group = what condition the participant was assigned in ses1.
+s5_assign <- test_s5 |>
+  dplyr::filter(ses == "ses1") |>
+  dplyr::distinct(id, original_group = group)
+
+test_s5 <- test_s5 |>
+  dplyr::left_join(s5_assign, by = "id") |>
+  dplyr::mutate(
+    # Fine-grained condition label for supplement reporting
+    ses_cond = dplyr::case_when(
+      ses == "ses1" & group == "Breath" ~ "ses1_Breath",
+      ses == "ses1" & group == "Visual" ~ "ses1_Visual",
+      ses == "ses2"                     ~ "ses2_Breath"
+    ),
+    ses_cond_f      = factor(ses_cond,
+                             levels = c("ses1_Breath", "ses1_Visual", "ses2_Breath")),
+    original_group_f = factor(original_group, levels = c("Breath", "Visual")),
+    ses_f2           = factor(ses, levels = c("ses1", "ses2"))
+  )
+
+cat("\nTrial counts by ses_cond:\n")
+test_s5 |> dplyr::count(ses_cond_f) |> print()
+
+# Condition x session interaction:
+# Does the Breath vs Visual difference in ses1 persist / change in ses2?
+# original_group_f = between-person assignment (Breath-first vs Visual-first)
+# ses_f2           = within-person session
+m_s5_arousal_ses <- lmerTest::lmer(
+  arousal ~ salience_f * accuracy_f * original_group_f * ses_f2 + (1 | id),
+  data = test_s5, REML = FALSE, control = lmer_ctrl
+)
+m_s5_conf_ses <- lmerTest::lmer(
+  confidence ~ salience_f * accuracy_f * original_group_f * ses_f2 + (1 | id),
+  data = test_s5, REML = FALSE, control = lmer_ctrl
+)
+cat("\n--- Study 5: Condition x Session interaction (arousal) ---\n")
+print(summary(m_s5_arousal_ses)$coefficients)
+cat("\n--- Study 5: Condition x Session interaction (confidence) ---\n")
+print(summary(m_s5_conf_ses)$coefficients)
+
+# LRT: does adding original_group x ses improve fit?
+m_s5_no_interaction <- lmerTest::lmer(
+  arousal ~ salience_f * accuracy_f + original_group_f + ses_f2 + (1 | id),
+  data = test_s5, REML = FALSE, control = lmer_ctrl
+)
+lrt_s5_ses <- anova(m_s5_no_interaction, m_s5_arousal_ses)
+cat("\n--- LRT: condition x session interaction (arousal) ---\n"); print(lrt_s5_ses)
+
+# Simple effects within each ses_cond (ses1_Breath, ses1_Visual, ses2_Breath)
+s5_simple <- purrr::map_dfr(
+  c("ses1_Breath", "ses1_Visual", "ses2_Breath"),
+  function(sc) {
+    df_sc <- dplyr::filter(test_s5, ses_cond == sc)
+    ma <- lmerTest::lmer(
+      arousal ~ salience_f * accuracy_f + (1 | id),
+      data = df_sc, REML = FALSE, control = lmer_ctrl
+    )
+    mc <- lmerTest::lmer(
+      confidence ~ salience_f * accuracy_f + (1 | id),
+      data = df_sc, REML = FALSE, control = lmer_ctrl
+    )
+    dplyr::bind_rows(
+      broom.mixed::tidy(ma, effects = "fixed") |>
+        dplyr::mutate(study = "S5", ses_cond = sc, outcome = "arousal"),
+      broom.mixed::tidy(mc, effects = "fixed") |>
+        dplyr::mutate(study = "S5", ses_cond = sc, outcome = "confidence")
+    )
+  }
+)
+cat("\n--- Study 5 simple effects by session-condition ---\n"); print(s5_simple)
+
+# ── 10c. Save stratified results ────────────────────────────
+s4_3way_tidy <- dplyr::bind_rows(
+  broom.mixed::tidy(m_s4_arousal, effects = "fixed") |>
+    dplyr::mutate(study = "S4", outcome = "arousal",    model = "threeway"),
+  broom.mixed::tidy(m_s4_conf,   effects = "fixed") |>
+    dplyr::mutate(study = "S4", outcome = "confidence", model = "threeway")
+) |>
+  dplyr::mutate(
+    partial_r = statistic / sqrt(statistic^2 + df),
+    dplyr::across(where(is.numeric), \(x) round(x, 4))
+  ) |>
+  dplyr::select(study, outcome, model, group, term,
+                estimate, std.error, statistic, df, p.value, partial_r)
+
+readr::write_csv(
+  dplyr::bind_rows(
+    s4_simple |> dplyr::mutate(model = "simple_effects"),
+    s4_3way_tidy
+  ) |> dplyr::mutate(dplyr::across(where(is.numeric), \(x) round(x, 4))),
+  file.path(RESULTS_DIR, "test_block_study4_stratified.csv")
+)
+
+s5_ses_tidy <- dplyr::bind_rows(
+  broom.mixed::tidy(m_s5_arousal_ses, effects = "fixed") |>
+    dplyr::mutate(study = "S5", outcome = "arousal",    model = "condition_x_session"),
+  broom.mixed::tidy(m_s5_conf_ses,   effects = "fixed") |>
+    dplyr::mutate(study = "S5", outcome = "confidence", model = "condition_x_session")
+) |>
+  dplyr::mutate(
+    partial_r = statistic / sqrt(statistic^2 + df),
+    dplyr::across(where(is.numeric), \(x) round(x, 4))
+  ) |>
+  dplyr::select(study, outcome, model, term,
+                estimate, std.error, statistic, df, p.value, partial_r)
+
+readr::write_csv(
+  dplyr::bind_rows(
+    s5_simple |> dplyr::mutate(model = "simple_effects") |>
+      dplyr::mutate(dplyr::across(where(is.numeric), \(x) round(x, 4))),
+    s5_ses_tidy
+  ),
+  file.path(RESULTS_DIR, "test_block_study5_sessions.csv")
+)
+
+cat("\nStratified results saved:\n")
+cat("  test_block_study4_stratified.csv  -- S4 Breath vs Visual simple effects + three-way\n")
+cat("  test_block_study5_sessions.csv    -- S5 ses1_Breath / ses1_Visual / ses2 + condition x ses\n")
+
+# ============================================================
+# 11. SAVE ALL RESULTS
 # ============================================================
 results_table <- dplyr::bind_rows(
   broom.mixed::tidy(m_arousal_sal,  effects = "fixed") |> dplyr::mutate(model = "arousal_marginal"),
