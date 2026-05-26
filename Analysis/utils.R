@@ -534,36 +534,45 @@ compute_test_dprime_3afc <- function(test_data,
 
 
 # ── BH correction ────────────────────────────────────────────
+# Applies Benjamini-Hochberg correction to all 8 pre-registered hypothesis
+# p-values for a single study, treated as one correction family.
+# Correct Studies 4 and 5 separately by calling this function twice.
+#
+# Expected hypothesis names: H1, H2, H3A, H3B, H4A, H5, H4B, H4C
+#
+# pvals must be a named numeric vector with names exactly matching the
+# hypothesis labels above. Names like "H1.p" indicate a single-bracket
+# indexing bug in the caller — use [["p"]] not ["p"] when extracting from
+# named vectors returned by .extract_coef() etc.
 apply_bh_correction <- function(pvals, study_label = "") {
-  
-  f1_names <- c("H1", "H2", "H3A", "H3B", "H4A", "H5")
-  f2_names <- c("H4B", "H4C")
-  
-  family1 <- tibble::tibble(
-    hypothesis = f1_names,
-    p_raw      = pvals[f1_names]
+
+  all_hypotheses <- c("H1", "H2", "H3A", "H3B", "H4A", "H5", "H4B", "H4C")
+
+  # Defensive check: warn if ".p"-suffixed names are found, indicating a
+  # single-bracket indexing bug in the caller.
+  dotted <- paste0(all_hypotheses, ".p")
+  found_dotted <- dotted[dotted %in% names(pvals)]
+  if (length(found_dotted) > 0) {
+    warning(sprintf(
+      "[%s] apply_bh_correction: found names %s in pvals. ",
+      study_label, paste(found_dotted, collapse = ", "),
+      "Use [['p']] not ['p'] when extracting from named vectors. ",
+      "Affected hypotheses will be treated as NA."
+    ))
+  }
+
+  result <- tibble::tibble(
+    hypothesis = all_hypotheses,
+    p_raw      = pvals[all_hypotheses]
   ) |>
     dplyr::filter(!is.na(p_raw)) |>
     dplyr::mutate(
       p_BH   = p.adjust(p_raw, method = "BH"),
       sig_BH = p_BH < .05
     )
-  
-  family2 <- tibble::tibble(
-    hypothesis = f2_names,
-    p_raw      = pvals[f2_names]
-  ) |>
-    dplyr::filter(!is.na(p_raw)) |>
-    dplyr::mutate(
-      p_BH   = p.adjust(p_raw, method = "BH"),
-      sig_BH = p_BH < .05
-    )
-  
-  cat(sprintf("\n[%s] BH correction results:\n", study_label))
-  cat("Family 1 (main effects):\n")
-  print(as.data.frame(family1), digits = 4, row.names = FALSE)
-  cat("Family 2 (interactions):\n")
-  print(as.data.frame(family2), digits = 4, row.names = FALSE)
-  
-  list(family1 = family1, family2 = family2)
+
+  cat(sprintf("\n[%s] BH correction results (all 8 hypotheses):\n", study_label))
+  print(as.data.frame(result), digits = 4, row.names = FALSE)
+
+  result
 }

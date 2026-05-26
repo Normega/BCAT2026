@@ -386,39 +386,31 @@ message("Saved: table_threshold_descriptives.csv")
 }
 
 s4_pvals <- c(
-  H1  = .extract_coef(s4_thresh$H1,   "DirectionSlower")["p"],
-  H2  = .extract_coef(s4_thresh$H2,   "SalienceHigh")["p"],
+  H1  = .extract_coef(s4_thresh$H1,   "DirectionSlower")[["p"]],
+  H2  = .extract_coef(s4_thresh$H2,   "SalienceHigh")[["p"]],
   H3A = .maia_val(s4_maia$H3A_freq$p.value),
   H3B = .maia_val(s4_maia$H3B_freq$p.value),
   H4A = .h4a_lrt(s4_arousal$H4A_null, s4_arousal$H4A_quad)[["p"]],
-  H5  = .extract_coef(s4_test$H5_sal, "SalienceHigh", p_col = "Pr(>|z|)")["p"],
+  H5  = .extract_coef(s4_test$H5_sal, "SalienceHigh", p_col = "Pr(>|z|)")[["p"]],
   H4B = .h4b_p(s4_arousal),
-  H4C = .extract_h4c_coef(s4_arousal$H4C_final, "Study4")["p"]
+  H4C = .extract_h4c_coef(s4_arousal$H4C_final, "Study4")[["p"]]
 )
 s4_bh <- apply_bh_correction(s4_pvals, study_label = "Study4")
-readr::write_csv(
-  dplyr::bind_rows(
-    s4_bh$family1 |> dplyr::mutate(family = "main_effects"),
-    s4_bh$family2 |> dplyr::mutate(family = "interactions")),
-  file.path(RESULTS_DIR, "study4_bh_correction.csv"))
+readr::write_csv(s4_bh, file.path(RESULTS_DIR, "study4_bh_correction.csv"))
 message("Saved: study4_bh_correction.csv")
 
 s5_pvals <- c(
-  H1  = .extract_coef(s5_thresh$H1,   "DirectionSlower")["p"],
-  H2  = .extract_coef(s5_thresh$H2,   "SalienceHigh")["p"],
+  H1  = .extract_coef(s5_thresh$H1,   "DirectionSlower")[["p"]],
+  H2  = .extract_coef(s5_thresh$H2,   "SalienceHigh")[["p"]],
   H3A = .maia_val(s5_maia$H3A_freq$p.value),
   H3B = .maia_val(s5_maia$H3B_freq$p.value),
   H4A = .h4a_lrt(s5_arousal$H4A_null, s5_arousal$H4A_quad)[["p"]],
-  H5  = .extract_coef(s5_test$H5_sal, "SalienceHigh", p_col = "Pr(>|z|)")["p"],
+  H5  = .extract_coef(s5_test$H5_sal, "SalienceHigh", p_col = "Pr(>|z|)")[["p"]],
   H4B = .h4b_p(s5_arousal),
-  H4C = .extract_h4c_coef(s5_arousal$H4C_final, "Study5")["p"]
+  H4C = .extract_h4c_coef(s5_arousal$H4C_final, "Study5")[["p"]]
 )
 s5_bh <- apply_bh_correction(s5_pvals, study_label = "Study5")
-readr::write_csv(
-  dplyr::bind_rows(
-    s5_bh$family1 |> dplyr::mutate(family = "main_effects"),
-    s5_bh$family2 |> dplyr::mutate(family = "interactions")),
-  file.path(RESULTS_DIR, "study5_bh_correction.csv"))
+readr::write_csv(s5_bh, file.path(RESULTS_DIR, "study5_bh_correction.csv"))
 message("Saved: study5_bh_correction.csv")
 
 
