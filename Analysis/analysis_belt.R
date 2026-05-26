@@ -18,9 +18,7 @@
 source(file.path(ANALYSIS_DIR, "theme_bcat.R"))
 
 belt_fig_dir   <- file.path(FIG_DIR,   "Study5_Belt")
-belt_model_dir <- file.path(MODEL_DIR, "Study5_Belt")
-dir.create(belt_fig_dir,   showWarnings = FALSE, recursive = TRUE)
-dir.create(belt_model_dir, showWarnings = FALSE, recursive = TRUE)
+dir.create(belt_fig_dir, showWarnings = FALSE, recursive = TRUE)
 
 # ── Belt-specific functions (moved from utils.R and models.R) ─
 
