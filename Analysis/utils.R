@@ -272,7 +272,8 @@ extract_h4b <- function(model, study_label = "") {
   # lmerTest adds a "df" column (Satterthwaite); lme4::lmer does not.
   # Fall back to a residual df approximation so partial_r is always exact.
   df  <- if ("df" %in% colnames(cf)) row[1, "df"] else
-           nobs(model) - length(lme4::fixef(model))
+           nobs(model) - length(lme4::fixef(model)) -
+           sum(sapply(lme4::ranef(model), nrow))
   p   <- row[1, "Pr(>|t|)"]
   pr  <- t / sqrt(t^2 + df)
 

@@ -1269,7 +1269,7 @@ sal_df  <- sal_row[1, "df"]
 # Point-null BF via t-distribution approximation (Rouder et al. 2009)
 # For a simple check: r-scale = 0.707 (default JZS prior)
 bf_sal <- tryCatch(
-  BayesFactor::ttest.tstat(t = sal_t, n1 = dplyr::n_distinct(salience_check$id),
+  BayesFactor::ttest.tstat(t = sal_t, n1 = round(sal_df) + 1,
                             nullInterval = NULL, complement = FALSE)$bf,
   error = function(e) NULL
 )

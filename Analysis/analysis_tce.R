@@ -531,7 +531,9 @@ ttest_results <- purrr::map_dfr(
       df        = round(tt$parameter, 1),
       p         = round(tt$p.value,   4),
       cohens_d  = round((mean(comp) - mean(noncomp)) /
-                    sqrt((sd(comp)^2 + sd(noncomp)^2) / 2), 3)
+                    sqrt(((length(comp) - 1) * sd(comp)^2 +
+                          (length(noncomp) - 1) * sd(noncomp)^2) /
+                         (length(comp) + length(noncomp) - 2)), 3)
     )
   }
 )
@@ -558,9 +560,7 @@ m_gate_2way <- lmerTest::lmer(
 )
 
 m_gate_3way <- lmerTest::lmer(
-  Arousal ~ Change * Accuracy + completer_f +
-    Change:completer_f + Accuracy:completer_f +
-    Change:Accuracy:completer_f + Change2 + (1 | id),
+  Arousal ~ Change * Accuracy * completer_f + Change2 + (1 | id),
   data = s5_ses1_breath, REML = FALSE, control = ctrl
 )
 

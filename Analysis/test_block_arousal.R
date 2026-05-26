@@ -246,69 +246,78 @@ for (grp in c("Breath", "Visual")) {
 }
 
 # ============================================================
-# 6. ANALYSIS 4: FREQUENTIST MEDIATION BY GROUP (person-level)
+# 6. ANALYSIS 4: FREQUENTIST MEDIATION BY GROUP (difference scores)
 # ============================================================
-person_test <- test |>
+# Difference score approach: compute High - Low per person so each
+# person contributes one row, avoiding pseudoreplication from treating
+# paired salience conditions as independent observations.
+person_wide <- test |>
   dplyr::group_by(id, study, group_f, salience_f) |>
   dplyr::summarise(
     mean_arousal    = mean(arousal,    na.rm = TRUE),
     mean_confidence = mean(confidence, na.rm = TRUE),
-    mean_accuracy   = mean(accuracy,     na.rm = TRUE),
-    n_trials        = dplyr::n(),
-    .groups         = "drop"
+    mean_accuracy   = mean(accuracy,   na.rm = TRUE),
+    .groups = "drop"
   ) |>
-  dplyr::mutate(salience_num = dplyr::if_else(salience_f == "High", 1, 0))
+  tidyr::pivot_wider(
+    id_cols    = c(id, study, group_f),
+    names_from = salience_f,
+    values_from = c(mean_arousal, mean_confidence, mean_accuracy)
+  ) |>
+  dplyr::mutate(
+    delta_accuracy   = mean_accuracy_High   - mean_accuracy_Low,
+    delta_arousal    = mean_arousal_High    - mean_arousal_Low,
+    delta_confidence = mean_confidence_High - mean_confidence_Low
+  )
 
-run_mediation <- function(data, outcome_var, label, n_boot = 1000) {
-  keep <- !is.na(data$mean_accuracy)  & !is.nan(data$mean_accuracy) &
-    !is.na(data[[outcome_var]]) & !is.nan(data[[outcome_var]])
-  data <- data[keep, ]
-  
-  out_fml <- paste(outcome_var, "~ salience_num + mean_accuracy")
-  
-  # Point estimates
-  a_est  <- coef(lm(mean_accuracy ~ salience_num, data = data))[["salience_num"]]
-  out_pt <- coef(lm(as.formula(out_fml), data = data))
-  b_est  <- out_pt[["mean_accuracy"]]
-  d_est  <- out_pt[["salience_num"]]
+run_mediation <- function(data, delta_outcome, label, n_boot = 1000) {
+  data <- data[!is.na(data[[delta_outcome]]) & !is.na(data$delta_accuracy), ]
+  # path a: mean salience effect on accuracy (High - Low)
+  a_est        <- mean(data$delta_accuracy, na.rm = TRUE)
+  # path b: accuracy difference predicts outcome difference
+  m_out        <- lm(as.formula(paste(delta_outcome, "~ delta_accuracy")), data = data)
+  b_est        <- coef(m_out)[["delta_accuracy"]]
+  # total effect: mean salience effect on outcome
+  c_est        <- mean(data[[delta_outcome]], na.rm = TRUE)
   indirect_est <- a_est * b_est
-  
-  # Percentile bootstrap CIs
+  direct_est   <- c_est - indirect_est
+
   set.seed(42)
   boot_indirect <- replicate(n_boot, {
-    db   <- data[sample(nrow(data), replace = TRUE), ]
-    a_b  <- coef(lm(mean_accuracy ~ salience_num, data = db))[["salience_num"]]
-    b_b  <- coef(lm(as.formula(out_fml), data = db))[["mean_accuracy"]]
+    db  <- data[sample(nrow(data), replace = TRUE), ]
+    a_b <- mean(db$delta_accuracy, na.rm = TRUE)
+    b_b <- coef(lm(as.formula(paste(delta_outcome, "~ delta_accuracy")),
+                   data = db))[["delta_accuracy"]]
     a_b * b_b
   })
-  
-  cat(sprintf("\n--- Mediation: %s (%s) ---\n", outcome_var, label))
-  cat(sprintf("  a (sal->acc):    %.3f\n", a_est))
-  cat(sprintf("  b (acc->out):    %.3f\n", b_est))
-  cat(sprintf("  Indirect (a*b):  %.3f [%.3f, %.3f]\n",
+
+  cat(sprintf("\n--- Mediation: %s (%s) ---\n", delta_outcome, label))
+  cat(sprintf("  a (sal->acc diff):   %.3f\n", a_est))
+  cat(sprintf("  b (acc->out diff):   %.3f\n", b_est))
+  cat(sprintf("  Indirect (a*b):      %.3f [%.3f, %.3f]\n",
               indirect_est,
               quantile(boot_indirect, .025),
               quantile(boot_indirect, .975)))
-  cat(sprintf("  Direct:          %.3f\n", d_est))
-  
+  cat(sprintf("  Direct:              %.3f\n", direct_est))
+
   tibble::tibble(
     group    = label,
-    outcome  = outcome_var,
+    outcome  = delta_outcome,
     indirect = round(indirect_est, 3),
     ind_lo   = round(quantile(boot_indirect, .025), 3),
     ind_hi   = round(quantile(boot_indirect, .975), 3),
-    direct   = round(d_est, 3),
-    prop_med = round(indirect_est / (indirect_est + d_est), 3)
+    direct   = round(direct_est, 3),
+    prop_med = round(indirect_est / c_est, 3)
   )
 }
 
 mediation_results <- purrr::map_dfr(
   c("Breath", "Visual"),
   function(grp) {
-    df_grp <- dplyr::filter(person_test, group_f == grp)
+    df_grp <- dplyr::filter(person_wide, group_f == grp)
     dplyr::bind_rows(
-      run_mediation(df_grp, "mean_arousal",    grp),
-      run_mediation(df_grp, "mean_confidence", grp)
+      run_mediation(df_grp, "delta_arousal",    grp),
+      run_mediation(df_grp, "delta_confidence", grp)
     )
   }
 )

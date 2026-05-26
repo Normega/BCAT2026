@@ -388,6 +388,8 @@ message("Saved: table_threshold_descriptives.csv")
 s4_pvals <- c(
   H1  = .extract_coef(s4_thresh$H1,   "DirectionSlower")["p"],
   H2  = .extract_coef(s4_thresh$H2,   "SalienceHigh")["p"],
+  H3A = .maia_val(s4_maia$H3A_freq$p.value),
+  H3B = .maia_val(s4_maia$H3B_freq$p.value),
   H4A = .h4a_lrt(s4_arousal$H4A_null, s4_arousal$H4A_quad)[["p"]],
   H5  = .extract_coef(s4_test$H5_sal, "SalienceHigh", p_col = "Pr(>|z|)")["p"],
   H4B = .h4b_p(s4_arousal),
@@ -404,6 +406,8 @@ message("Saved: study4_bh_correction.csv")
 s5_pvals <- c(
   H1  = .extract_coef(s5_thresh$H1,   "DirectionSlower")["p"],
   H2  = .extract_coef(s5_thresh$H2,   "SalienceHigh")["p"],
+  H3A = .maia_val(s5_maia$H3A_freq$p.value),
+  H3B = .maia_val(s5_maia$H3B_freq$p.value),
   H4A = .h4a_lrt(s5_arousal$H4A_null, s5_arousal$H4A_quad)[["p"]],
   H5  = .extract_coef(s5_test$H5_sal, "SalienceHigh", p_col = "Pr(>|z|)")["p"],
   H4B = .h4b_p(s5_arousal),

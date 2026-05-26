@@ -145,11 +145,12 @@ print(as.data.frame(level3_results), digits = 3, row.names = FALSE)
 cat("\nLevel 4 — Condition (breath/visual) and session:\n")
 
 level4_results <- thresh_long |>
-  dplyr::filter(!is.na(MAIA_total_z)) |>
+  dplyr::filter(!is.na(MAIA_total_z), !is.na(Threshold)) |>
+  dplyr::group_by(id, Condition, ses, MAIA_total_z) |>
+  dplyr::summarise(mean_threshold = mean(Threshold, na.rm = TRUE), .groups = "drop") |>
   dplyr::group_by(Condition, ses) |>
   dplyr::summarise(
-    r       = cor(Threshold, MAIA_total_z, use = "complete.obs"),
-    n_rows  = dplyr::n(),
+    r       = cor(mean_threshold, MAIA_total_z, use = "complete.obs"),
     n_parts = dplyr::n_distinct(id),
     .groups = "drop"
   )

@@ -168,21 +168,32 @@ m_acc_main <- lme4::glmer(
 cat("\n--- Pooled GLMM: accuracy ~ salience * direction ---\n")
 print(summary(m_acc_main)$coefficients)
 
-# LRT: is salience effect significant?
+# Additive model (no interaction) — baseline for main-effect LRTs
+m_acc_additive <- lme4::glmer(
+  accuracy ~ salience_f + direction_f + group_f + study_f + ses_f +
+    (1 | id),
+  data = test, family = binomial, control = glmer_ctrl
+)
+
+# LRT: is salience main effect significant? (additive vs. no salience)
 m_acc_nosal <- lme4::glmer(
   accuracy ~ direction_f + group_f + study_f + ses_f + (1 | id),
   data = test, family = binomial, control = glmer_ctrl
 )
-lrt_sal <- anova(m_acc_nosal, m_acc_main)
-cat("\nLRT salience effect:\n"); print(lrt_sal)
+lrt_sal <- anova(m_acc_nosal, m_acc_additive)
+cat("\nLRT salience main effect:\n"); print(lrt_sal)
 
-# LRT: is direction effect significant?
+# LRT: is direction main effect significant? (additive vs. no direction)
 m_acc_nodir <- lme4::glmer(
   accuracy ~ salience_f + group_f + study_f + ses_f + (1 | id),
   data = test, family = binomial, control = glmer_ctrl
 )
-lrt_dir <- anova(m_acc_nodir, m_acc_main)
-cat("\nLRT direction effect:\n"); print(lrt_dir)
+lrt_dir <- anova(m_acc_nodir, m_acc_additive)
+cat("\nLRT direction main effect:\n"); print(lrt_dir)
+
+# LRT: is the salience × direction interaction significant?
+lrt_int <- anova(m_acc_additive, m_acc_main)
+cat("\nLRT salience × direction interaction:\n"); print(lrt_int)
 
 # ============================================================
 # 4. PERSON-LEVEL d' (3AFC) ~ SALIENCE AND DIRECTION
