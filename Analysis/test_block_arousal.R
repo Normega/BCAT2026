@@ -751,7 +751,7 @@ s4_3way_tidy <- dplyr::bind_rows(
     partial_r = statistic / sqrt(statistic^2 + df),
     dplyr::across(where(is.numeric), \(x) round(x, 4))
   ) |>
-  dplyr::select(study, outcome, model, group, term,
+  dplyr::select(study, outcome, model, term,
                 estimate, std.error, statistic, df, p.value, partial_r)
 
 readr::write_csv(
