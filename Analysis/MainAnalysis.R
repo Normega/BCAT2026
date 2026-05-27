@@ -146,7 +146,7 @@ packages <- c(
   # Mediation
   "mediation",
   # Visualization
-  "patchwork", "ggeffects", "scales",
+  "patchwork", "ggeffects", "scales", "Hmisc",
   # Table building (Build_*.R files sourced below)
   "flextable", "officer"
 )
