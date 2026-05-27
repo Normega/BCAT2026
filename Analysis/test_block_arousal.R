@@ -16,6 +16,7 @@
 #   brms_indirect_by_group.csv         — Bayesian indirect effects by group
 #   brms_arousal_indirect_draws.csv    — posterior draws for indirect arousal effect
 #   freq_vs_brms_key_terms.csv         — frequentist vs Bayesian key term comparison
+#   bf_direct_salience.csv             — BF01 for null direct salience path (bridge sampling)
 
 # ============================================================
 # 1. LOAD AND HARMONIZE DATA
@@ -503,6 +504,8 @@ bf_direct <- brms::bayes_factor(bm_out_arousal_nodirect, bm_out_arousal_bs)
 cat("\nBF01 for null direct salience path (arousal, with group):",
     round(bf_direct$bf, 2), "\n")
 
+readr::write_csv(tibble::tibble(BF01_direct = bf_direct$bf),
+                 file.path(RESULTS_DIR, "bf_direct_salience.csv"))
 # ============================================================
 # 8. COMPARE FREQUENTIST vs BRMS: KEY TERMS
 # ============================================================
