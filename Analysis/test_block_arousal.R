@@ -559,7 +559,7 @@ make_bar_plot <- function(outcome_var, ylabel, title_str) {
   ) +
     ggplot2::stat_summary(fun = mean, geom = "bar",
                           position = "dodge", alpha = 0.6, width = 0.6) +
-    ggplot2::stat_summary(fun.data = mean_cl_boot, geom = "errorbar",
+    ggplot2::stat_summary(fun.data = Hmisc::mean_cl_boot, geom = "errorbar",
                           position = ggplot2::position_dodge(0.6), width = 0.2) +
     ggplot2::facet_grid(study_f ~ group_f) +
     ggplot2::scale_colour_manual(values = c("miss" = "#4C72B0", "hit" = "#DD8452")) +
