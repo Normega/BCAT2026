@@ -297,9 +297,11 @@ if (file.exists(cache_m0)) {
   brm_m0 <- brms::brm(
     formula   = bf_a0 + bf_b0 + set_rescor(FALSE),
     data      = s3,
-    chains    = 4, iter = 4000, warmup = 1000,
+    chains    = 4, iter = 8000, warmup = 2000,
     cores     = 4, seed  = 42,
     control   = brms_ctrl,
+    prior     = c(brms::prior(exponential(1), class = "sd", resp = "Arousal"),
+                  brms::prior(exponential(1), class = "sd", resp = "Attraction")),
     file      = cache_m0
   )
 }
@@ -343,9 +345,11 @@ if (file.exists(cache_m1)) {
   brm_m1 <- brms::brm(
     formula   = bf_a1 + bf_b1 + set_rescor(FALSE),
     data      = s3,
-    chains    = 4, iter = 4000, warmup = 1000,
+    chains    = 4, iter = 8000, warmup = 2000,
     cores     = 4, seed  = 42,
     control   = brms_ctrl,
+    prior     = c(brms::prior(exponential(1), class = "sd", resp = "Arousal"),
+                  brms::prior(exponential(1), class = "sd", resp = "Attraction")),
     file      = cache_m1
   )
 }
@@ -565,9 +569,11 @@ if (file.exists(cache_m_maia)) {
   brm_maia <- brms::brm(
     formula = bf_a_maia + bf_b_maia + set_rescor(FALSE),
     data    = s3l_maia,
-    chains  = 4, iter = 4000, warmup = 1000,
+    chains  = 4, iter = 8000, warmup = 2000,
     cores   = 4, seed  = 42,
     control = brms_ctrl,
+    prior   = c(brms::prior(exponential(1), class = "sd", resp = "Arousal"),
+                brms::prior(exponential(1), class = "sd", resp = "Attraction")),
     file    = cache_m_maia
   )
 }

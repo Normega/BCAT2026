@@ -93,7 +93,7 @@ test_b <- test |>
     salience_num = dplyr::if_else(salience_f == "High", 1L, 0L),
     accuracy_num = accuracy,
     group_num    = dplyr::if_else(group_f == "Breath", 1L, 0L),
-    study_num    = dplyr::if_else(study_f == "S5",    1L, 0L)
+    study_num    = dplyr::if_else(study_f == "S5",    0.5, -0.5)
   )
 
 # ============================================================
@@ -340,8 +340,9 @@ bm_med <- brms::brm(
   data   = test_b,
   family = brms::bernoulli(link = "logit"),
   prior  = bpriors[bpriors$class != "sigma", ],
-  chains = 4, iter = 2000, warmup = 1000,
+  chains = 4, iter = 6000, warmup = 2000,
   cores  = 4, seed = 42,
+  control = list(adapt_delta = 0.95),
   file   = file.path(RDS_DIR, "brms_mediator_group")
 )
 summary(bm_med)
@@ -353,8 +354,9 @@ bm_out_arousal <- brms::brm(
   data   = test_b,
   family = gaussian(),
   prior  = bpriors,
-  chains = 4, iter = 2000, warmup = 1000,
+  chains = 4, iter = 6000, warmup = 2000,
   cores  = 4, seed = 42,
+  control = list(adapt_delta = 0.95),
   file   = file.path(RDS_DIR, "brms_outcome_arousal_group")
 )
 summary(bm_out_arousal)
@@ -366,8 +368,9 @@ bm_out_conf <- brms::brm(
   data   = test_b,
   family = gaussian(),
   prior  = bpriors,
-  chains = 4, iter = 2000, warmup = 1000,
+  chains = 4, iter = 6000, warmup = 2000,
   cores  = 4, seed = 42,
+  control = list(adapt_delta = 0.95),
   file   = file.path(RDS_DIR, "brms_outcome_confidence_group")
 )
 summary(bm_out_conf)
